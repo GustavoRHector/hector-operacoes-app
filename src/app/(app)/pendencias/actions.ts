@@ -59,6 +59,95 @@ export async function createRecurringPendingAction(formData: FormData) {
   redirect("/pendencias?created=1");
 }
 
+const allowedRecurringStatuses = ["ok", "due_soon", "expired", "renewing", "renewed"] as const;
+
+// Atualiza uma pendência recorrente. Restrito a admin/manager (gate + RLS).
+export async function updateRecurringPendingAction(formData: FormData) {
+  const profile = await requireProfile();
+
+  if (!canManageOperations(profile.role)) {
+    redirect("/pendencias?error=permissao");
+  }
+
+  const supabase = await createClient();
+  const pendingId = getRequiredUuid(formData, "pending_id");
+  const title = getRequiredText(formData, "title", 140);
+  const category = getRequiredText(formData, "category", 80);
+  const documentNumber = getOptionalText(formData, "document_number", 80);
+  const issuedAt = getOptionalDate(formData, "issued_at");
+  const dueDate = getRequiredDate(formData, "due_date");
+  const unitId = getOptionalUuid(formData, "unit_id");
+  const responsibleId = getOptionalUuid(formData, "responsible_id") ?? profile.id;
+  const status = getAllowedValue(formData, "status", allowedRecurringStatuses, "ok");
+
+  const { error } = await supabase
+    .from("recurring_pendings")
+    .update({
+      title,
+      category,
+      document_number: documentNumber,
+      issued_at: issuedAt,
+      due_date: dueDate,
+      unit_id: unitId,
+      responsible_id: responsibleId,
+      status
+    })
+    .eq("id", pendingId);
+
+  if (error) {
+    redirect(`/pendencias/${pendingId}/editar?error=salvar`);
+  }
+
+  revalidatePath("/pendencias");
+  revalidatePath(`/pendencias/${pendingId}`);
+  revalidatePath("/dashboard");
+  redirect("/pendencias?updated=1");
+}
+
+// Exclui uma pendência recorrente (e seu checklist em cascata). Só gestão.
+export async function deleteRecurringPendingAction(formData: FormData) {
+  const profile = await requireProfile();
+
+  if (!canManageOperations(profile.role)) {
+    redirect("/pendencias?error=permissao");
+  }
+
+  const supabase = await createClient();
+  const pendingId = getRequiredUuid(formData, "pending_id");
+
+  const { error } = await supabase.from("recurring_pendings").delete().eq("id", pendingId);
+
+  if (error) {
+    redirect(`/pendencias/${pendingId}/editar?error=excluir`);
+  }
+
+  revalidatePath("/pendencias");
+  revalidatePath("/dashboard");
+  redirect("/pendencias?deleted=1");
+}
+
+// Aceita apenas valores de status previstos para a pendência.
+function getAllowedValue<T extends string>(
+  formData: FormData,
+  field: string,
+  allowedValues: readonly T[],
+  fallback: T
+) {
+  const value = String(formData.get(field) ?? "");
+  return allowedValues.includes(value as T) ? (value as T) : fallback;
+}
+
+// Exige UUID válido ao alterar ou excluir uma pendência existente.
+function getRequiredUuid(formData: FormData, field: string) {
+  const value = getOptionalUuid(formData, field);
+
+  if (!value) {
+    redirect("/pendencias?error=campos");
+  }
+
+  return value;
+}
+
 // Cria checklist padrão quando a categoria indica alvará ou licença.
 async function createDefaultChecklist(companyId: string, recurringPendingId: string, category: string) {
   const normalizedCategory = category.toLowerCase();

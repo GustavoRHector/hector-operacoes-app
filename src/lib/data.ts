@@ -6,6 +6,7 @@ import type {
   ProcessItem,
   RecurringPending,
   RecurringPendingDetail,
+  RecurringPendingEditData,
   Task,
   TaskEditData,
   Unit
@@ -145,6 +146,23 @@ export async function getRecurringPendingById(id: string) {
     checklist_done: checklist.filter((item) => item.is_done).length,
     checklist_items: checklist
   } satisfies RecurringPendingDetail;
+}
+
+// Busca uma pendência com campos crus (incluindo o status gravado) para edição.
+// O isolamento por empresa continua garantido pela política RLS de leitura.
+export async function getRecurringPendingForEdit(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("recurring_pendings")
+    .select("id, title, category, document_number, issued_at, due_date, unit_id, responsible_id, status")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data satisfies RecurringPendingEditData;
 }
 
 // Calcula status de vencimento na leitura para manter alertas atualizados.

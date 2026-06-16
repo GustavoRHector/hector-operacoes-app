@@ -25,9 +25,19 @@ export default async function RecurringPendingDetailPage({
   return (
     <div className="space-y-5">
       <section>
-        <Link className="text-sm font-medium text-moss hover:text-ink" href="/pendencias">
-          Voltar para pendências
-        </Link>
+        <div className="flex items-center justify-between gap-3">
+          <Link className="text-sm font-medium text-moss hover:text-ink" href="/pendencias">
+            Voltar para pendências
+          </Link>
+          {canManage ? (
+            <Link
+              className="text-sm font-medium text-clay hover:text-ink"
+              href={`/pendencias/${pending.id}/editar`}
+            >
+              Editar dados
+            </Link>
+          ) : null}
+        </div>
         <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-2">

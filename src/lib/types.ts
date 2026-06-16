@@ -53,6 +53,20 @@ export type RecurringPendingDetail = RecurringPending & {
   checklist_items: ChecklistItem[];
 };
 
+// Campos crus de uma pendência recorrente para o formulário de edição.
+// status aqui é o valor gravado no banco, não o status calculado na leitura.
+export type RecurringPendingEditData = {
+  id: string;
+  title: string;
+  category: string;
+  document_number: string | null;
+  issued_at: string | null;
+  due_date: string;
+  unit_id: string | null;
+  responsible_id: string | null;
+  status: RecurringStatus;
+};
+
 export type ProcessItem = {
   id: string;
   title: string;
