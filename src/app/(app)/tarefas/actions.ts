@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
+import { canManageOperations } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 import type { TaskStatus } from "@/lib/types";
 
@@ -60,6 +61,61 @@ export async function updateTaskStatusAction(formData: FormData) {
   revalidatePath("/tarefas");
   revalidatePath("/dashboard");
   redirect("/tarefas?updated=1");
+}
+
+// Atualiza todos os campos de uma tarefa. Restrito a admin/manager, pois o
+// trigger validate_task_update_scope do banco já impede usuário comum de
+// alterar campos sensíveis; a edição completa fica concentrada na gestão.
+export async function updateTaskAction(formData: FormData) {
+  const profile = await requireProfile();
+
+  if (!canManageOperations(profile.role)) {
+    redirect("/tarefas?error=permissao");
+  }
+
+  const supabase = await createClient();
+  const taskId = getRequiredUuid(formData, "task_id");
+  const title = getRequiredText(formData, "title", 120);
+  const description = getOptionalText(formData, "description", 2000);
+  const status = getAllowedValue(formData, "status", allowedStatuses, "todo");
+  const priority = getAllowedValue(formData, "priority", allowedPriorities, "medium");
+  const dueDate = getOptionalDate(formData, "due_date");
+  const assigneeId = getOptionalUuid(formData, "assignee_id");
+
+  const { error } = await supabase
+    .from("tasks")
+    .update({ title, description, status, priority, due_date: dueDate, assignee_id: assigneeId })
+    .eq("id", taskId);
+
+  if (error) {
+    redirect(`/tarefas/${taskId}?error=salvar`);
+  }
+
+  revalidatePath("/tarefas");
+  revalidatePath("/dashboard");
+  redirect("/tarefas?updated=1");
+}
+
+// Exclui uma tarefa. A política tasks_delete_manager_only restringe ao banco.
+export async function deleteTaskAction(formData: FormData) {
+  const profile = await requireProfile();
+
+  if (!canManageOperations(profile.role)) {
+    redirect("/tarefas?error=permissao");
+  }
+
+  const supabase = await createClient();
+  const taskId = getRequiredUuid(formData, "task_id");
+
+  const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+
+  if (error) {
+    redirect(`/tarefas/${taskId}?error=excluir`);
+  }
+
+  revalidatePath("/tarefas");
+  revalidatePath("/dashboard");
+  redirect("/tarefas?deleted=1");
 }
 
 // Lê texto obrigatório e limita tamanho para evitar dados inesperados.

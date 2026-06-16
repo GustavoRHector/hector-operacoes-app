@@ -63,6 +63,17 @@ export type ProcessItem = {
   notes: string | null;
 };
 
+// Campos crus de uma tarefa para preencher o formulário de edição.
+export type TaskEditData = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: TaskStatus;
+  priority: "low" | "medium" | "high";
+  due_date: string | null;
+  assignee_id: string | null;
+};
+
 // Campos crus de um processo para preencher o formulário de edição.
 export type ProcessEditData = {
   id: string;

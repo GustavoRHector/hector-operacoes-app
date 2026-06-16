@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { StatusBadge } from "@/components/StatusBadge";
 import { updateTaskStatusAction } from "@/app/(app)/tarefas/actions";
 import type { Task, TaskStatus } from "@/lib/types";
@@ -10,7 +11,8 @@ const columns: Array<{ id: TaskStatus; label: string }> = [
 ];
 
 // Organiza tarefas em colunas no estilo Kanban sem alterar dados no navegador.
-export function TaskBoard({ tasks }: { tasks: Task[] }) {
+// canManage controla o link de edição completa (a permissão real é checada no servidor).
+export function TaskBoard({ tasks, canManage = false }: { tasks: Task[]; canManage?: boolean }) {
   return (
     <div className="grid gap-4 lg:grid-cols-4">
       {columns.map((column) => {
@@ -40,6 +42,15 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
                     <p>Responsável: {task.assignee_name ?? "Sem responsável"}</p>
                     <p>Prazo: {task.due_date ? formatDate(task.due_date) : "Sem prazo"}</p>
                   </div>
+
+                  {canManage ? (
+                    <Link
+                      className="mt-2 inline-block text-xs font-medium text-clay hover:text-ink"
+                      href={`/tarefas/${task.id}`}
+                    >
+                      Editar
+                    </Link>
+                  ) : null}
 
                   <form action={updateTaskStatusAction} className="mt-3 flex flex-wrap gap-2">
                     <input name="task_id" type="hidden" value={task.id} />

@@ -1,9 +1,12 @@
 import { TaskCreateForm } from "@/components/TaskCreateForm";
 import { TaskBoard } from "@/components/TaskBoard";
+import { requireProfile } from "@/lib/auth";
 import { listProfiles, listTasks } from "@/lib/data";
+import { canManageOperations } from "@/lib/security";
 
 // Exibe o quadro Kanban com tarefas filtradas pelas políticas do Supabase.
 export default async function TasksPage() {
+  const profile = await requireProfile();
   const [tasks, profiles] = await Promise.all([listTasks(), listProfiles()]);
 
   return (
@@ -17,7 +20,7 @@ export default async function TasksPage() {
       </section>
 
       <TaskCreateForm profiles={profiles} />
-      <TaskBoard tasks={tasks} />
+      <TaskBoard tasks={tasks} canManage={canManageOperations(profile.role)} />
     </div>
   );
 }

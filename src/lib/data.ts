@@ -6,6 +6,7 @@ import type {
   RecurringPending,
   RecurringPendingDetail,
   Task,
+  TaskEditData,
   Unit
 } from "@/lib/types";
 
@@ -32,6 +33,23 @@ export async function listTasks() {
     due_date: task.due_date,
     assignee_name: getRelationText(task.assignee, "full_name")
   })) satisfies Task[];
+}
+
+// Busca uma tarefa específica com campos crus para a tela de edição.
+// O isolamento por empresa continua garantido pela política RLS de leitura.
+export async function getTaskById(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tasks")
+    .select("id, title, description, status, priority, due_date, assignee_id")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data satisfies TaskEditData;
 }
 
 // Lista perfis da mesma empresa para seleção de responsáveis.
