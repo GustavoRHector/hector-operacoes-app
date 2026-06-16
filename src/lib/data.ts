@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
   CalendarEvent,
+  CalendarEventEditData,
   ProcessEditData,
   ProcessItem,
   RecurringPending,
@@ -206,7 +207,7 @@ export async function listCalendarEvents() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("calendar_events")
-    .select("id, title, description, starts_at, ends_at, event_type, responsible:profiles(full_name)")
+    .select("id, title, description, starts_at, ends_at, event_type, responsible_id, created_by, responsible:profiles(full_name)")
     .order("starts_at", { ascending: true });
 
   if (error) {
@@ -220,8 +221,27 @@ export async function listCalendarEvents() {
     starts_at: event.starts_at,
     ends_at: event.ends_at,
     event_type: event.event_type,
-    responsible_name: getRelationText(event.responsible, "full_name")
+    responsible_name: getRelationText(event.responsible, "full_name"),
+    responsible_id: event.responsible_id,
+    created_by: event.created_by
   })) satisfies CalendarEvent[];
+}
+
+// Busca um compromisso específico com campos crus para a tela de edição.
+// O isolamento por empresa continua garantido pela política RLS de leitura.
+export async function getCalendarEventById(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("calendar_events")
+    .select("id, title, description, starts_at, ends_at, event_type, responsible_id, created_by")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data satisfies CalendarEventEditData;
 }
 
 // Lista apenas compromissos futuros para indicadores do dashboard.
@@ -229,7 +249,7 @@ export async function listUpcomingCalendarEvents() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("calendar_events")
-    .select("id, title, description, starts_at, ends_at, event_type, responsible:profiles(full_name)")
+    .select("id, title, description, starts_at, ends_at, event_type, responsible_id, created_by, responsible:profiles(full_name)")
     .gte("starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true });
 
@@ -244,7 +264,9 @@ export async function listUpcomingCalendarEvents() {
     starts_at: event.starts_at,
     ends_at: event.ends_at,
     event_type: event.event_type,
-    responsible_name: getRelationText(event.responsible, "full_name")
+    responsible_name: getRelationText(event.responsible, "full_name"),
+    responsible_id: event.responsible_id,
+    created_by: event.created_by
   })) satisfies CalendarEvent[];
 }
 

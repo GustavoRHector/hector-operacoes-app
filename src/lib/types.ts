@@ -93,4 +93,18 @@ export type CalendarEvent = {
   ends_at: string | null;
   event_type: string;
   responsible_name: string | null;
+  responsible_id: string | null;
+  created_by: string | null;
+};
+
+// Campos crus de um compromisso para preencher o formulário de edição.
+export type CalendarEventEditData = {
+  id: string;
+  title: string;
+  description: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  event_type: string;
+  responsible_id: string | null;
+  created_by: string | null;
 };

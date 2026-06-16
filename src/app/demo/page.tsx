@@ -107,7 +107,9 @@ const demoEvents: CalendarEvent[] = [
     starts_at: "2026-06-18T10:00:00-03:00",
     ends_at: "2026-06-18T11:00:00-03:00",
     event_type: "Reunião",
-    responsible_name: "Mariana"
+    responsible_name: "Mariana",
+    responsible_id: null,
+    created_by: null
   },
   {
     id: "demo-event-2",
@@ -116,7 +118,9 @@ const demoEvents: CalendarEvent[] = [
     starts_at: "2026-07-05T17:00:00-03:00",
     ends_at: null,
     event_type: "Prazo",
-    responsible_name: "Bianca"
+    responsible_name: "Bianca",
+    responsible_id: null,
+    created_by: null
   }
 ];
 

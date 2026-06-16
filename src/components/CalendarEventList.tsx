@@ -1,7 +1,18 @@
+import Link from "next/link";
 import type { CalendarEvent } from "@/lib/types";
 
 // Exibe compromissos da agenda em ordem cronológica.
-export function CalendarEventList({ events }: { events: CalendarEvent[] }) {
+// O link de edição aparece para gestão, criador ou responsável de cada evento
+// (a permissão real é sempre reavaliada no servidor).
+export function CalendarEventList({
+  events,
+  currentUserId,
+  canManage = false
+}: {
+  events: CalendarEvent[];
+  currentUserId?: string;
+  canManage?: boolean;
+}) {
   if (events.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-moss/25 bg-white p-6 text-sm text-moss">
@@ -25,6 +36,14 @@ export function CalendarEventList({ events }: { events: CalendarEvent[] }) {
             <div className="text-left text-sm md:text-right">
               <p className="font-semibold text-ink">{formatDateTime(event.starts_at)}</p>
               {event.ends_at ? <p className="text-moss">até {formatDateTime(event.ends_at)}</p> : null}
+              {canManage || event.created_by === currentUserId || event.responsible_id === currentUserId ? (
+                <Link
+                  className="mt-2 inline-block text-sm font-medium text-clay hover:text-ink"
+                  href={`/agenda/${event.id}`}
+                >
+                  Editar
+                </Link>
+              ) : null}
             </div>
           </div>
 
