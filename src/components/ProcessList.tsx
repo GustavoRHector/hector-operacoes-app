@@ -1,7 +1,15 @@
+import Link from "next/link";
 import type { ProcessItem } from "@/lib/types";
 
 // Exibe processos em cards resumidos para leitura rápida.
-export function ProcessList({ processes }: { processes: ProcessItem[] }) {
+// canManage controla a exibição do link de edição (a permissão real é checada no servidor).
+export function ProcessList({
+  processes,
+  canManage = false
+}: {
+  processes: ProcessItem[];
+  canManage?: boolean;
+}) {
   if (processes.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-moss/25 bg-white p-6 text-sm text-moss">
@@ -28,6 +36,14 @@ export function ProcessList({ processes }: { processes: ProcessItem[] }) {
               <p className="mt-1 text-sm text-moss">
                 Prazo: {process.due_date ? formatDate(process.due_date) : "Sem prazo"}
               </p>
+              {canManage ? (
+                <Link
+                  className="mt-2 inline-block text-sm font-medium text-clay hover:text-ink"
+                  href={`/processos/${process.id}`}
+                >
+                  Editar
+                </Link>
+              ) : null}
             </div>
           </div>
 

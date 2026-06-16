@@ -3,14 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
-import { canManageSettings } from "@/lib/security";
+import { canManageOperations } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 
 // Cria uma unidade/casa usando a empresa do perfil autenticado.
 export async function createUnitAction(formData: FormData) {
   const profile = await requireProfile();
 
-  if (!canManageSettings(profile.role)) {
+  if (!canManageOperations(profile.role)) {
     redirect("/unidades?error=permissao");
   }
 

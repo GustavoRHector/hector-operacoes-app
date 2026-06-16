@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
-import { canManageSettings } from "@/lib/security";
+import { canManageOperations } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 
 const defaultPermitChecklist = [
@@ -20,7 +20,7 @@ export async function createRecurringPendingAction(formData: FormData) {
   const profile = await requireProfile();
   const supabase = await createClient();
 
-  if (!canManageSettings(profile.role)) {
+  if (!canManageOperations(profile.role)) {
     redirect("/pendencias?error=permissao");
   }
 

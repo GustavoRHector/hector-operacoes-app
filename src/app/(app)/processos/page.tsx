@@ -2,7 +2,7 @@ import { ProcessCreateForm } from "@/components/ProcessCreateForm";
 import { ProcessList } from "@/components/ProcessList";
 import { requireProfile } from "@/lib/auth";
 import { listProcesses, listProfiles } from "@/lib/data";
-import { canManageSettings } from "@/lib/security";
+import { canManageOperations } from "@/lib/security";
 
 // Exibe processos internos e mostra cadastro apenas para quem pode gerenciar.
 export default async function ProcessesPage() {
@@ -19,8 +19,8 @@ export default async function ProcessesPage() {
         </p>
       </section>
 
-      {canManageSettings(profile.role) ? <ProcessCreateForm profiles={profiles} /> : null}
-      <ProcessList processes={processes} />
+      {canManageOperations(profile.role) ? <ProcessCreateForm profiles={profiles} /> : null}
+      <ProcessList processes={processes} canManage={canManageOperations(profile.role)} />
     </div>
   );
 }

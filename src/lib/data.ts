@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
   CalendarEvent,
+  ProcessEditData,
   ProcessItem,
   RecurringPending,
   RecurringPendingDetail,
@@ -163,6 +164,23 @@ export async function listProcesses() {
     notes: process.notes,
     responsible_name: getRelationText(process.responsible, "full_name")
   })) satisfies ProcessItem[];
+}
+
+// Busca um processo específico com campos crus para a tela de edição.
+// O isolamento por empresa continua garantido pela política RLS de leitura.
+export async function getProcessById(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("processes")
+    .select("id, title, category, status, due_date, responsible_id, notes")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data satisfies ProcessEditData;
 }
 
 // Lista compromissos da agenda da empresa autenticada.

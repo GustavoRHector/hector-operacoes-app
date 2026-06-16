@@ -5,7 +5,7 @@ import { toggleChecklistItemAction } from "@/app/(app)/pendencias/[id]/actions";
 import { StatusBadge } from "@/components/StatusBadge";
 import { requireProfile } from "@/lib/auth";
 import { getRecurringPendingById } from "@/lib/data";
-import { canManageSettings } from "@/lib/security";
+import { canManageOperations } from "@/lib/security";
 
 // Exibe o detalhe da pendência recorrente e seu checklist de renovação.
 export default async function RecurringPendingDetailPage({
@@ -20,7 +20,7 @@ export default async function RecurringPendingDetailPage({
     notFound();
   }
 
-  const canManage = canManageSettings(profile.role);
+  const canManage = canManageOperations(profile.role);
 
   return (
     <div className="space-y-5">

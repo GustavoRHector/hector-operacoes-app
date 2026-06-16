@@ -2,7 +2,7 @@ import { UnitCreateForm } from "@/components/UnitCreateForm";
 import { UnitList } from "@/components/UnitList";
 import { requireProfile } from "@/lib/auth";
 import { listUnits } from "@/lib/data";
-import { canManageSettings } from "@/lib/security";
+import { canManageOperations } from "@/lib/security";
 
 // Exibe casas/unidades e permite cadastro apenas para perfis de gestão.
 export default async function UnitsPage() {
@@ -19,7 +19,7 @@ export default async function UnitsPage() {
         </p>
       </section>
 
-      {canManageSettings(profile.role) ? <UnitCreateForm /> : null}
+      {canManageOperations(profile.role) ? <UnitCreateForm /> : null}
       <UnitList units={units} />
     </div>
   );

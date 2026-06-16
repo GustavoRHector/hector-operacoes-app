@@ -63,6 +63,17 @@ export type ProcessItem = {
   notes: string | null;
 };
 
+// Campos crus de um processo para preencher o formulário de edição.
+export type ProcessEditData = {
+  id: string;
+  title: string;
+  category: string;
+  status: string;
+  due_date: string | null;
+  responsible_id: string | null;
+  notes: string | null;
+};
+
 export type CalendarEvent = {
   id: string;
   title: string;

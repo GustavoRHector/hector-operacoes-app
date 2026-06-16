@@ -2,7 +2,7 @@ import { RecurringCreateForm } from "@/components/RecurringCreateForm";
 import { RecurringList } from "@/components/RecurringList";
 import { requireProfile } from "@/lib/auth";
 import { listProfiles, listRecurringPendings, listUnits } from "@/lib/data";
-import { canManageSettings } from "@/lib/security";
+import { canManageOperations } from "@/lib/security";
 
 // Exibe pendências fixas e recorrentes com dados protegidos por empresa.
 export default async function PendingsPage() {
@@ -24,7 +24,7 @@ export default async function PendingsPage() {
         </p>
       </section>
 
-      {canManageSettings(profile.role) ? <RecurringCreateForm profiles={profiles} units={units} /> : null}
+      {canManageOperations(profile.role) ? <RecurringCreateForm profiles={profiles} units={units} /> : null}
       <RecurringList items={pendings} />
     </div>
   );
