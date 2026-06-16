@@ -1,13 +1,40 @@
 import { CalendarCreateForm } from "@/components/CalendarCreateForm";
 import { CalendarEventList } from "@/components/CalendarEventList";
+import { CalendarMonth } from "@/components/CalendarMonth";
 import { requireProfile } from "@/lib/auth";
 import { listCalendarEvents, listProfiles } from "@/lib/data";
 import { canManageOperations } from "@/lib/security";
 
-// Exibe agenda da empresa e permite criar compromissos protegidos por RLS.
-export default async function AgendaPage() {
+// Resolve o mês exibido a partir do parâmetro ?month=YYYY-MM, com o mês atual
+// (fuso de São Paulo) como padrão e proteção contra valores inválidos.
+function resolveMonth(monthParam?: string) {
+  const now = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit"
+  }).format(new Date());
+
+  const value = /^\d{4}-\d{2}$/.test(monthParam ?? "") ? (monthParam as string) : now;
+  const [year, month] = value.split("-").map(Number);
+
+  if (month < 1 || month > 12) {
+    const [fy, fm] = now.split("-").map(Number);
+    return { year: fy, month: fm };
+  }
+
+  return { year, month };
+}
+
+// Exibe agenda da empresa: visão mensal em grade + lista cronológica.
+export default async function AgendaPage({
+  searchParams
+}: {
+  searchParams: { month?: string };
+}) {
   const profile = await requireProfile();
   const [events, profiles] = await Promise.all([listCalendarEvents(), listProfiles()]);
+  const { year, month } = resolveMonth(searchParams?.month);
+  const canManage = canManageOperations(profile.role);
 
   return (
     <div className="space-y-5">
@@ -20,11 +47,12 @@ export default async function AgendaPage() {
       </section>
 
       <CalendarCreateForm profiles={profiles} />
-      <CalendarEventList
-        events={events}
-        currentUserId={profile.id}
-        canManage={canManageOperations(profile.role)}
-      />
+      <CalendarMonth events={events} year={year} month={month} />
+
+      <section>
+        <h2 className="mb-3 text-lg font-semibold text-ink">Próximos e anteriores</h2>
+        <CalendarEventList events={events} currentUserId={profile.id} canManage={canManage} />
+      </section>
     </div>
   );
 }
