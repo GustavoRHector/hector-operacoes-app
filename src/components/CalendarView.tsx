@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { updateGoogleEventAction } from "@/app/(app)/agenda/actions";
+import { deleteGoogleEventAction, updateGoogleEventAction } from "@/app/(app)/agenda/actions";
 import { toDateKeyBR, toDateTimeLocalBR, toTimeBR } from "@/lib/utils";
 
 // Evento achatado para exibição. Campos extras alimentam o modal de detalhes;
@@ -436,7 +436,22 @@ function EventModal({ event, onClose }: { event: CalendarDisplayEvent; onClose: 
               </button>
             </div>
           </form>
-        ) : (
+        ) : null}
+
+        {event.source === "google" ? (
+          // Exclusão em form separado (não pode aninhar dentro do form de edição).
+          <form action={deleteGoogleEventAction} className="mt-3 border-t border-white/10 pt-3">
+            <input name="google_event_id" type="hidden" value={event.id} />
+            <button
+              className="rounded-md border border-magic-red/50 px-4 py-2 text-sm font-medium text-magic-red transition hover:bg-magic-red/10"
+              type="submit"
+            >
+              Excluir do Google
+            </button>
+          </form>
+        ) : null}
+
+        {event.source === "internal" ? (
           <>
             <h3 className="text-xl font-semibold text-white">{event.title}</h3>
             <p className="mt-1 text-sm text-moss">{niceDate}</p>
@@ -467,7 +482,7 @@ function EventModal({ event, onClose }: { event: CalendarDisplayEvent; onClose: 
               </button>
             </div>
           </>
-        )}
+        ) : null}
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ function googleFeedback(status?: string) {
   if (status === "conectado") return { ok: true, message: "Google Calendar conectado com sucesso." };
   if (status === "desconectado") return { ok: true, message: "Conta Google desconectada." };
   if (status === "atualizado") return { ok: true, message: "Evento atualizado no Google." };
+  if (status === "excluido") return { ok: true, message: "Evento excluído do Google." };
   if (status === "erro") return { ok: false, message: "Não foi possível falar com o Google. Tente novamente." };
   return null;
 }

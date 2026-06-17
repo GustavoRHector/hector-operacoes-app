@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { getCalendarEventById } from "@/lib/data";
-import { createGoogleEvent, getGoogleAccount, updateGoogleEvent } from "@/lib/google";
+import { createGoogleEvent, deleteGoogleEvent, getGoogleAccount, updateGoogleEvent } from "@/lib/google";
 import { canManageOperations } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 
@@ -186,6 +186,24 @@ export async function updateGoogleEventAction(formData: FormData) {
 
   revalidatePath("/agenda");
   redirect("/agenda?google=atualizado");
+}
+
+// Exclui, pelo app, um evento que vive no Google Calendar do usuário.
+export async function deleteGoogleEventAction(formData: FormData) {
+  const profile = await requireProfile();
+
+  const googleEventId = String(formData.get("google_event_id") ?? "").trim();
+  if (!/^[a-zA-Z0-9_]+$/.test(googleEventId)) {
+    redirect("/agenda?google=erro");
+  }
+
+  const ok = await deleteGoogleEvent(profile.id, googleEventId);
+  if (!ok) {
+    redirect("/agenda?google=erro");
+  }
+
+  revalidatePath("/agenda");
+  redirect("/agenda?google=excluido");
 }
 
 // Lê texto obrigatório e limita o tamanho aceito.

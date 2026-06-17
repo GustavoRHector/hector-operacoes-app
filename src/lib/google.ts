@@ -241,3 +241,15 @@ export async function updateGoogleEvent(
   );
   return res.ok;
 }
+
+// Exclui um evento do Google Calendar do usuário. 410 = já estava excluído.
+export async function deleteGoogleEvent(userId: string, googleEventId: string): Promise<boolean> {
+  const token = await getValidAccessToken(userId);
+  if (!token) return false;
+
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}`,
+    { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
+  );
+  return res.ok || res.status === 410;
+}
