@@ -49,7 +49,7 @@ export default async function RecurringPendingDetailPage({
               {pending.unit_name} · Responsável: {pending.responsible_name ?? "Sem responsável"}
             </p>
           </div>
-          <div className="rounded-lg border border-moss/15 bg-white p-4 text-sm shadow-soft">
+          <div className="glass-card p-4 text-sm">
             <p className="text-moss">Vencimento</p>
             <p className="font-semibold text-ink">{formatDate(pending.due_date)}</p>
             <p className="mt-2 text-moss">Documento</p>
@@ -58,7 +58,7 @@ export default async function RecurringPendingDetailPage({
         </div>
       </section>
 
-      <section className="rounded-lg border border-moss/15 bg-white p-4 shadow-soft">
+      <section className="glass-card p-4">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-ink">Checklist de renovação</h2>
@@ -79,7 +79,7 @@ export default async function RecurringPendingDetailPage({
                 disabled={!canManage}
               >
                 {item.is_done ? (
-                  <CheckCircle2 className="text-green-700" size={20} />
+                  <CheckCircle2 className="text-magic-green" size={20} />
                 ) : (
                   <Circle className="text-moss" size={20} />
                 )}

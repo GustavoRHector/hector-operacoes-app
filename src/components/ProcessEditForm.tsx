@@ -16,7 +16,7 @@ export function ProcessEditForm({
 }) {
   return (
     <div className="space-y-4">
-      <form action={updateProcessAction} className="rounded-lg border border-moss/15 bg-white p-4 shadow-soft">
+      <form action={updateProcessAction} className="glass-card p-4">
         {/* Identifica o processo a alterar; a empresa nunca vem do formulário. */}
         <input type="hidden" name="process_id" value={process.id} />
 
@@ -24,7 +24,7 @@ export function ProcessEditForm({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Nome do processo</span>
             <input
-              className="w-full rounded-md border border-moss/20 px-3 py-2 outline-none ring-ambered/30 focus:ring-4"
+              className="w-full glass-input rounded-md px-3 py-2 outline-none ring-ambered/30 focus:ring-4"
               name="title"
               defaultValue={process.title}
               maxLength={140}
@@ -35,7 +35,7 @@ export function ProcessEditForm({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Categoria</span>
             <input
-              className="w-full rounded-md border border-moss/20 px-3 py-2 outline-none ring-ambered/30 focus:ring-4"
+              className="w-full glass-input rounded-md px-3 py-2 outline-none ring-ambered/30 focus:ring-4"
               name="category"
               defaultValue={process.category}
               maxLength={80}
@@ -46,7 +46,7 @@ export function ProcessEditForm({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Status</span>
             <input
-              className="w-full rounded-md border border-moss/20 px-3 py-2"
+              className="w-full glass-input rounded-md px-3 py-2"
               name="status"
               defaultValue={process.status}
               maxLength={60}
@@ -56,7 +56,7 @@ export function ProcessEditForm({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Responsável</span>
             <select
-              className="w-full rounded-md border border-moss/20 px-3 py-2"
+              className="w-full glass-input rounded-md px-3 py-2"
               name="responsible_id"
               defaultValue={process.responsible_id ?? ""}
             >
@@ -72,7 +72,7 @@ export function ProcessEditForm({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Prazo</span>
             <input
-              className="w-full rounded-md border border-moss/20 px-3 py-2"
+              className="w-full glass-input rounded-md px-3 py-2"
               name="due_date"
               type="date"
               defaultValue={process.due_date ?? ""}
@@ -82,7 +82,7 @@ export function ProcessEditForm({
           <label className="block lg:col-span-2">
             <span className="mb-1 block text-sm font-medium text-ink">Observações</span>
             <textarea
-              className="min-h-24 w-full rounded-md border border-moss/20 px-3 py-2"
+              className="min-h-24 w-full glass-input rounded-md px-3 py-2"
               name="notes"
               defaultValue={process.notes ?? ""}
               maxLength={2000}
@@ -90,16 +90,16 @@ export function ProcessEditForm({
           </label>
         </div>
 
-        <button className="mt-4 rounded-md bg-ink px-4 py-2 text-sm font-medium text-linen transition hover:bg-moss">
+        <button className="mt-4 btn-primary rounded-md px-4 py-2 text-sm font-medium">
           Salvar alterações
         </button>
       </form>
 
       {/* Exclusão isolada em outro form para não enviar os demais campos. */}
-      <form action={deleteProcessAction} className="rounded-lg border border-red-200 bg-red-50 p-4">
+      <form action={deleteProcessAction} className="rounded-lg border border-magic-red/40 bg-magic-red/10 p-4">
         <input type="hidden" name="process_id" value={process.id} />
-        <p className="text-sm text-red-700">Excluir remove o processo definitivamente.</p>
-        <button className="mt-3 rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100">
+        <p className="text-sm text-magic-red">Excluir remove o processo definitivamente.</p>
+        <button className="mt-3 rounded-md border border-magic-red/50 px-4 py-2 text-sm font-medium text-magic-red transition hover:bg-magic-red/10">
           Excluir processo
         </button>
       </form>

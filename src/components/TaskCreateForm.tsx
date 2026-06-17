@@ -8,12 +8,12 @@ type Option = {
 // Renderiza o formulário de criação de tarefa usando action segura no servidor.
 export function TaskCreateForm({ profiles }: { profiles: Option[] }) {
   return (
-    <form action={createTaskAction} className="rounded-lg border border-moss/15 bg-white p-4 shadow-soft">
+    <form action={createTaskAction} className="glass-card p-4">
       <div className="grid gap-4 lg:grid-cols-2">
         <label className="block lg:col-span-2">
           <span className="mb-1 block text-sm font-medium text-ink">Título da tarefa</span>
           <input
-            className="w-full rounded-md border border-moss/20 px-3 py-2 outline-none ring-ambered/30 focus:ring-4"
+            className="w-full glass-input rounded-md px-3 py-2 outline-none ring-ambered/30 focus:ring-4"
             name="title"
             maxLength={120}
             required
@@ -23,7 +23,7 @@ export function TaskCreateForm({ profiles }: { profiles: Option[] }) {
         <label className="block lg:col-span-2">
           <span className="mb-1 block text-sm font-medium text-ink">Descrição</span>
           <textarea
-            className="min-h-24 w-full rounded-md border border-moss/20 px-3 py-2 outline-none ring-ambered/30 focus:ring-4"
+            className="min-h-24 w-full glass-input rounded-md px-3 py-2 outline-none ring-ambered/30 focus:ring-4"
             name="description"
             maxLength={2000}
           />
@@ -31,7 +31,7 @@ export function TaskCreateForm({ profiles }: { profiles: Option[] }) {
 
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-ink">Status</span>
-          <select className="w-full rounded-md border border-moss/20 px-3 py-2" name="status" defaultValue="todo">
+          <select className="w-full glass-input rounded-md px-3 py-2" name="status" defaultValue="todo">
             <option value="todo">A fazer</option>
             <option value="doing">Em andamento</option>
             <option value="waiting">Aguardando terceiro</option>
@@ -41,7 +41,7 @@ export function TaskCreateForm({ profiles }: { profiles: Option[] }) {
 
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-ink">Prioridade</span>
-          <select className="w-full rounded-md border border-moss/20 px-3 py-2" name="priority" defaultValue="medium">
+          <select className="w-full glass-input rounded-md px-3 py-2" name="priority" defaultValue="medium">
             <option value="low">Baixa</option>
             <option value="medium">Média</option>
             <option value="high">Alta</option>
@@ -50,7 +50,7 @@ export function TaskCreateForm({ profiles }: { profiles: Option[] }) {
 
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-ink">Responsável</span>
-          <select className="w-full rounded-md border border-moss/20 px-3 py-2" name="assignee_id">
+          <select className="w-full glass-input rounded-md px-3 py-2" name="assignee_id">
             <option value="">Sem responsável</option>
             {profiles.map((profile) => (
               <option key={profile.id} value={profile.id}>
@@ -62,11 +62,11 @@ export function TaskCreateForm({ profiles }: { profiles: Option[] }) {
 
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-ink">Prazo</span>
-          <input className="w-full rounded-md border border-moss/20 px-3 py-2" name="due_date" type="date" />
+          <input className="w-full glass-input rounded-md px-3 py-2" name="due_date" type="date" />
         </label>
       </div>
 
-      <button className="mt-4 rounded-md bg-ink px-4 py-2 text-sm font-medium text-linen transition hover:bg-moss">
+      <button className="mt-4 btn-primary rounded-md px-4 py-2 text-sm font-medium">
         Criar tarefa
       </button>
     </form>

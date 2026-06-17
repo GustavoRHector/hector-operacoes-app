@@ -19,17 +19,17 @@ export function UserList({
 }) {
   if (users.length === 0) {
     return (
-      <p className="rounded-lg border border-moss/15 bg-white px-5 py-8 text-center text-sm text-moss shadow-soft">
+      <p className="glass-card px-5 py-8 text-center text-sm text-moss">
         Nenhum usuário encontrado.
       </p>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-moss/15 bg-white shadow-soft">
+    <div className="overflow-hidden glass-card">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-moss/15 bg-mist/50">
+          <tr className="border-b border-moss/15 bg-white/5">
             <th className="px-4 py-3 text-left font-semibold text-ink">Nome</th>
             <th className="px-4 py-3 text-left font-semibold text-ink">E-mail</th>
             <th className="px-4 py-3 text-left font-semibold text-ink">Perfil atual</th>
@@ -51,7 +51,7 @@ export function UserList({
                 </td>
                 <td className="px-4 py-3 text-moss">{user.email}</td>
                 <td className="px-4 py-3">
-                  <span className="rounded-full bg-mist px-2.5 py-0.5 text-xs font-medium text-ink">
+                  <span className="glass-chip rounded-full px-2.5 py-0.5 text-xs font-medium text-ink">
                     {ROLE_LABELS[user.role]}
                   </span>
                 </td>
@@ -62,7 +62,7 @@ export function UserList({
                     <form action={updateRoleAction} className="flex items-center gap-2">
                       <input name="user_id" type="hidden" value={user.id} />
                       <select
-                        className="rounded-md border border-moss/25 bg-linen px-2 py-1.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-moss/30"
+                        className="glass-input rounded-md px-2 py-1.5 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-moss/30"
                         defaultValue={user.role}
                         name="role"
                       >
@@ -73,7 +73,7 @@ export function UserList({
                         ))}
                       </select>
                       <button
-                        className="rounded-md border border-moss/20 bg-white px-2.5 py-1.5 text-xs font-medium text-ink transition hover:bg-mist"
+                        className="btn-secondary rounded-md px-2.5 py-1.5 text-xs font-medium"
                         type="submit"
                       >
                         Salvar
@@ -86,7 +86,7 @@ export function UserList({
                     <form action={removeUserAction}>
                       <input name="user_id" type="hidden" value={user.id} />
                       <button
-                        className="rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
+                        className="rounded-md border border-magic-red/50 px-2.5 py-1.5 text-xs font-medium text-magic-red transition hover:bg-magic-red/10"
                         type="submit"
                       >
                         Remover

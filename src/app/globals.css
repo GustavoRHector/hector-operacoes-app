@@ -3,9 +3,21 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
-  background: #f8f3ea;
-  color: #17211a;
+  color-scheme: dark;
+
+  /* Gradientes da marca */
+  --brand-grad: linear-gradient(135deg, #6ad1e3 0%, #7d7dff 34%, #e451f5 70%, #1a2891 100%);
+  --blue-grad: linear-gradient(145deg, #1a2891 0%, #263dd1 54%, #6ad1e3 120%);
+  --pink-grad: linear-gradient(145deg, #e451f5 0%, #8a68ff 42%, #6ad1e3 100%);
+  --aurora-bg:
+    radial-gradient(120% 80% at 20% 0%, #4b3bd8 0%, transparent 55%),
+    radial-gradient(110% 80% at 90% 10%, #e451f5 0%, transparent 50%),
+    radial-gradient(120% 80% at 50% 100%, #6ad1e3 0%, transparent 55%),
+    linear-gradient(180deg, #0a0f3a 0%, #1a2891 60%, #2a1d6b 100%);
+
+  /* Sombras e realces de vidro */
+  --shadow-glass: 0 30px 60px -20px rgba(7, 16, 56, 0.55), 0 8px 24px -10px rgba(7, 16, 56, 0.35);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
 }
 
 * {
@@ -15,10 +27,11 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #f8f3ea;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  color: #ffffff;
+  font-family: "Montserrat", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--aurora-bg);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
@@ -26,4 +39,83 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+@layer components {
+  /* Cartão de vidro fosco — superfície padrão sobre a aurora. */
+  .glass-card {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    box-shadow: var(--shadow-glass), var(--glass-highlight);
+    border-radius: 24px;
+  }
+
+  /* Chip/realce pequeno — badges, caixas de ícone, hovers. */
+  .glass-chip {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(18px) saturate(170%);
+    -webkit-backdrop-filter: blur(18px) saturate(170%);
+  }
+
+  /* Campos de formulário translúcidos. */
+  .glass-input {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    color: #ffffff;
+  }
+  .glass-input::placeholder {
+    color: rgba(255, 255, 255, 0.45);
+  }
+  .glass-input option {
+    color: #071038;
+  }
+
+  /* Botão primário — branco com texto azul e brilho da marca. */
+  .btn-primary {
+    background: #ffffff;
+    color: #1a2891;
+    font-weight: 600;
+    border-radius: 16px;
+    box-shadow: 0 0 40px rgba(228, 81, 245, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 56px rgba(228, 81, 245, 0.5);
+  }
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  /* Botão secundário — chip de vidro. */
+  .btn-secondary {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border-radius: 16px;
+    backdrop-filter: blur(18px) saturate(170%);
+    -webkit-backdrop-filter: blur(18px) saturate(170%);
+    transition: background 0.15s ease;
+  }
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Gradientes utilitários da marca */
+.bg-brand-grad {
+  background: var(--brand-grad);
+}
+.bg-blue-grad {
+  background: var(--blue-grad);
+}
+.bg-pink-grad {
+  background: var(--pink-grad);
+}
+.text-balance {
+  text-wrap: balance;
 }

@@ -5,7 +5,7 @@ export function UserInviteForm() {
   return (
     <form
       action={inviteUserAction}
-      className="rounded-lg border border-moss/15 bg-white p-5 shadow-soft"
+      className="glass-card p-5"
     >
       <h2 className="mb-4 text-lg font-semibold text-ink">Convidar usuário</h2>
 
@@ -15,7 +15,7 @@ export function UserInviteForm() {
             Nome completo
           </label>
           <input
-            className="rounded-md border border-moss/25 bg-linen px-3 py-2 text-sm text-ink placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-moss/30"
+            className="glass-input rounded-md px-3 py-2 text-sm text-ink placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-moss/30"
             id="invite-name"
             name="full_name"
             placeholder="Nome do usuário"
@@ -29,7 +29,7 @@ export function UserInviteForm() {
             E-mail
           </label>
           <input
-            className="rounded-md border border-moss/25 bg-linen px-3 py-2 text-sm text-ink placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-moss/30"
+            className="glass-input rounded-md px-3 py-2 text-sm text-ink placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-moss/30"
             id="invite-email"
             name="email"
             placeholder="usuario@empresa.com"
@@ -43,7 +43,7 @@ export function UserInviteForm() {
             Perfil
           </label>
           <select
-            className="rounded-md border border-moss/25 bg-linen px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-moss/30"
+            className="glass-input rounded-md px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-moss/30"
             id="invite-role"
             name="role"
           >
@@ -55,7 +55,7 @@ export function UserInviteForm() {
       </div>
 
       <button
-        className="mt-4 rounded-md bg-ink px-4 py-2 text-sm font-medium text-linen transition hover:bg-moss"
+        className="mt-4 btn-primary rounded-md px-4 py-2 text-sm font-medium"
         type="submit"
       >
         Enviar convite

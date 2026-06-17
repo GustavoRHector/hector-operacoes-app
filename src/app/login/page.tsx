@@ -10,10 +10,10 @@ export default function LoginPage({
   const errorMessage = getLoginErrorMessage(searchParams.error);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-linen px-4 py-10">
-      <section className="w-full max-w-md rounded-lg border border-moss/15 bg-white p-6 shadow-soft">
+    <main className="flex min-h-screen items-center justify-center px-4 py-10">
+      <section className="w-full max-w-md glass-card p-6">
         <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-ink text-linen">
+          <div className="flex h-11 w-11 items-center justify-center rounded-md bg-brand-grad text-white">
             <LockKeyhole size={22} />
           </div>
           <div>
@@ -23,7 +23,7 @@ export default function LoginPage({
         </div>
 
         {errorMessage ? (
-          <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="mb-4 rounded-md border border-magic-red/40 bg-magic-red/15 px-3 py-2 text-sm text-magic-red">
             {errorMessage}
           </p>
         ) : null}
@@ -34,7 +34,7 @@ export default function LoginPage({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">E-mail</span>
             <input
-              className="w-full rounded-md border border-moss/20 px-3 py-2 outline-none ring-ambered/30 transition focus:ring-4"
+              className="w-full glass-input rounded-md px-3 py-2 outline-none ring-ambered/30 transition focus:ring-4"
               name="email"
               type="email"
               autoComplete="email"
@@ -45,7 +45,7 @@ export default function LoginPage({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Senha</span>
             <input
-              className="w-full rounded-md border border-moss/20 px-3 py-2 outline-none ring-ambered/30 transition focus:ring-4"
+              className="w-full glass-input rounded-md px-3 py-2 outline-none ring-ambered/30 transition focus:ring-4"
               name="password"
               type="password"
               autoComplete="current-password"
@@ -53,7 +53,7 @@ export default function LoginPage({
             />
           </label>
 
-          <button className="w-full rounded-md bg-ink px-4 py-2.5 font-medium text-linen transition hover:bg-moss">
+          <button className="btn-primary w-full rounded-md px-4 py-2.5 font-medium">
             Entrar com segurança
           </button>
         </form>

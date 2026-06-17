@@ -12,7 +12,7 @@ export function ProcessList({
 }) {
   if (processes.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-moss/25 bg-white p-6 text-sm text-moss">
+      <div className="rounded-lg border border-dashed border-white/20 p-6 text-sm text-moss">
         Nenhum processo cadastrado ainda.
       </div>
     );
@@ -21,7 +21,7 @@ export function ProcessList({
   return (
     <div className="grid gap-3">
       {processes.map((process) => (
-        <article className="rounded-lg border border-moss/15 bg-white p-4 shadow-soft" key={process.id}>
+        <article className="glass-card p-4" key={process.id}>
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <span className="text-xs font-semibold uppercase text-clay">{process.category}</span>

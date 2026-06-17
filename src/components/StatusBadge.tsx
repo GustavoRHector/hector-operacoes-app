@@ -12,16 +12,17 @@ const labels: Record<string, string> = {
   renewed: "Renovado"
 };
 
+// Tons translúcidos sobre vidro escuro: borda + fundo na mesma cor com baixa opacidade.
 const styles: Record<string, string> = {
-  todo: "bg-slate-100 text-slate-700",
-  doing: "bg-blue-100 text-blue-700",
-  waiting: "bg-amber-100 text-amber-800",
-  done: "bg-green-100 text-green-700",
-  ok: "bg-green-100 text-green-700",
-  due_soon: "bg-amber-100 text-amber-800",
-  expired: "bg-red-100 text-red-700",
-  renewing: "bg-blue-100 text-blue-700",
-  renewed: "bg-mist text-moss"
+  todo: "bg-white/10 text-white border border-white/20",
+  doing: "bg-celeste/15 text-celeste border border-celeste/40",
+  waiting: "bg-magic-amber/15 text-magic-amber border border-magic-amber/40",
+  done: "bg-magic-green/15 text-magic-green border border-magic-green/40",
+  ok: "bg-magic-green/15 text-magic-green border border-magic-green/40",
+  due_soon: "bg-magic-amber/15 text-magic-amber border border-magic-amber/40",
+  expired: "bg-magic-red/15 text-magic-red border border-magic-red/45",
+  renewing: "bg-celeste/15 text-celeste border border-celeste/40",
+  renewed: "bg-white/10 text-moss border border-white/20"
 };
 
 // Mostra status de forma padronizada para reduzir interpretação errada da equipe.

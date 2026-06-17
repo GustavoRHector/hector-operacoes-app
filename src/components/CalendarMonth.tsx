@@ -57,10 +57,10 @@ export function CalendarMonth({
   const monthParam = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
 
   return (
-    <section className="rounded-lg border border-moss/15 bg-white p-4 shadow-soft">
+    <section className="glass-card p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <Link
-          className="rounded-md border border-moss/20 px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-mist"
+          className="glass-input rounded-md px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-mist"
           href={`/agenda?month=${monthParam(prev.y, prev.m)}`}
         >
           ‹ Anterior
@@ -69,7 +69,7 @@ export function CalendarMonth({
           {monthLabels[month - 1]} de {year}
         </h2>
         <Link
-          className="rounded-md border border-moss/20 px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-mist"
+          className="glass-input rounded-md px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-mist"
           href={`/agenda?month=${monthParam(next.y, next.m)}`}
         >
           Próximo ›
@@ -106,7 +106,7 @@ export function CalendarMonth({
               <div className="mt-1 space-y-1">
                 {dayEvents.map((event) => (
                   <Link
-                    className="block truncate rounded bg-ink/90 px-1.5 py-0.5 text-[11px] font-medium text-linen transition hover:bg-moss"
+                    className="block truncate rounded bg-white/15 px-1.5 py-0.5 text-[11px] font-medium text-white transition hover:bg-white/25"
                     href={`/agenda/${event.id}`}
                     key={event.id}
                     title={event.title}

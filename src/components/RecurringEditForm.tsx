@@ -31,7 +31,7 @@ export function RecurringEditForm({
 }) {
   return (
     <div className="space-y-4">
-      <form action={updateRecurringPendingAction} className="rounded-lg border border-moss/15 bg-white p-4 shadow-soft">
+      <form action={updateRecurringPendingAction} className="glass-card p-4">
         {/* Identifica a pendência a alterar; a empresa nunca vem do formulário. */}
         <input type="hidden" name="pending_id" value={pending.id} />
 
@@ -39,7 +39,7 @@ export function RecurringEditForm({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Nome da pendência</span>
             <input
-              className="w-full rounded-md border border-moss/20 px-3 py-2 outline-none ring-ambered/30 focus:ring-4"
+              className="w-full glass-input rounded-md px-3 py-2 outline-none ring-ambered/30 focus:ring-4"
               name="title"
               defaultValue={pending.title}
               maxLength={140}
@@ -50,7 +50,7 @@ export function RecurringEditForm({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Categoria</span>
             <input
-              className="w-full rounded-md border border-moss/20 px-3 py-2 outline-none ring-ambered/30 focus:ring-4"
+              className="w-full glass-input rounded-md px-3 py-2 outline-none ring-ambered/30 focus:ring-4"
               name="category"
               defaultValue={pending.category}
               maxLength={80}
@@ -61,7 +61,7 @@ export function RecurringEditForm({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Unidade/Casa</span>
             <select
-              className="w-full rounded-md border border-moss/20 px-3 py-2"
+              className="w-full glass-input rounded-md px-3 py-2"
               name="unit_id"
               defaultValue={pending.unit_id ?? ""}
             >
@@ -77,7 +77,7 @@ export function RecurringEditForm({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Responsável</span>
             <select
-              className="w-full rounded-md border border-moss/20 px-3 py-2"
+              className="w-full glass-input rounded-md px-3 py-2"
               name="responsible_id"
               defaultValue={pending.responsible_id ?? ""}
             >
@@ -93,7 +93,7 @@ export function RecurringEditForm({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Situação</span>
             <select
-              className="w-full rounded-md border border-moss/20 px-3 py-2"
+              className="w-full glass-input rounded-md px-3 py-2"
               name="status"
               defaultValue={pending.status}
             >
@@ -108,7 +108,7 @@ export function RecurringEditForm({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Número do documento</span>
             <input
-              className="w-full rounded-md border border-moss/20 px-3 py-2"
+              className="w-full glass-input rounded-md px-3 py-2"
               name="document_number"
               defaultValue={pending.document_number ?? ""}
               maxLength={80}
@@ -118,7 +118,7 @@ export function RecurringEditForm({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Data de emissão</span>
             <input
-              className="w-full rounded-md border border-moss/20 px-3 py-2"
+              className="w-full glass-input rounded-md px-3 py-2"
               name="issued_at"
               type="date"
               defaultValue={pending.issued_at ?? ""}
@@ -128,7 +128,7 @@ export function RecurringEditForm({
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">Data de vencimento</span>
             <input
-              className="w-full rounded-md border border-moss/20 px-3 py-2"
+              className="w-full glass-input rounded-md px-3 py-2"
               name="due_date"
               type="date"
               defaultValue={pending.due_date}
@@ -137,16 +137,16 @@ export function RecurringEditForm({
           </label>
         </div>
 
-        <button className="mt-4 rounded-md bg-ink px-4 py-2 text-sm font-medium text-linen transition hover:bg-moss">
+        <button className="mt-4 btn-primary rounded-md px-4 py-2 text-sm font-medium">
           Salvar alterações
         </button>
       </form>
 
       {/* Exclusão isolada; remove a pendência e o checklist vinculado em cascata. */}
-      <form action={deleteRecurringPendingAction} className="rounded-lg border border-red-200 bg-red-50 p-4">
+      <form action={deleteRecurringPendingAction} className="rounded-lg border border-magic-red/40 bg-magic-red/10 p-4">
         <input type="hidden" name="pending_id" value={pending.id} />
-        <p className="text-sm text-red-700">Excluir remove a pendência e seu checklist definitivamente.</p>
-        <button className="mt-3 rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100">
+        <p className="text-sm text-magic-red">Excluir remove a pendência e seu checklist definitivamente.</p>
+        <button className="mt-3 rounded-md border border-magic-red/50 px-4 py-2 text-sm font-medium text-magic-red transition hover:bg-magic-red/10">
           Excluir pendência
         </button>
       </form>

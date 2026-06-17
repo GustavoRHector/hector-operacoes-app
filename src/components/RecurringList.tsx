@@ -13,7 +13,7 @@ export function RecurringList({ items }: { items: RecurringPending[] }) {
             : Math.round((item.checklist_done / item.checklist_total) * 100);
 
         return (
-          <article className="rounded-lg border border-moss/15 bg-white p-4 shadow-soft" key={item.id}>
+          <article className="glass-card p-4" key={item.id}>
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -45,7 +45,7 @@ export function RecurringList({ items }: { items: RecurringPending[] }) {
             </div>
 
             <Link
-              className="mt-4 inline-flex rounded-md border border-moss/20 px-3 py-2 text-sm font-medium text-ink transition hover:bg-mist"
+              className="mt-4 btn-secondary inline-flex rounded-md px-3 py-2 text-sm font-medium"
               href={`/pendencias/${item.id}`}
             >
               Abrir checklist

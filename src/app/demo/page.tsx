@@ -137,8 +137,8 @@ export default function DemoPage() {
   const dueSoonPendings = demoPendings.filter((pending) => pending.status === "due_soon");
 
   return (
-    <main className="min-h-screen bg-linen">
-      <aside className="fixed inset-x-0 bottom-0 z-20 border-t border-moss/15 bg-white md:inset-y-0 md:left-0 md:right-auto md:w-64 md:border-r md:border-t-0">
+    <main className="min-h-screen">
+      <aside className="fixed inset-x-0 bottom-0 z-20 border-t border-white/10 glass-chip md:inset-y-0 md:left-0 md:right-auto md:w-64 md:border-r md:border-t-0">
         <div className="hidden px-5 py-6 md:block">
           <p className="text-lg font-semibold text-ink">Hector Operações</p>
           <p className="mt-1 text-sm text-moss">Simulação visual</p>
@@ -165,13 +165,13 @@ export default function DemoPage() {
       </aside>
 
       <div className="pb-24 md:ml-64 md:pb-0">
-        <header className="sticky top-0 z-10 border-b border-moss/15 bg-linen/90 px-4 py-4 backdrop-blur md:px-8">
+        <header className="sticky top-0 z-10 border-b border-moss/15 bg-white/5 px-4 py-4 backdrop-blur md:px-8">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm text-moss">Bem-vindo(a)</p>
               <h1 className="text-xl font-semibold text-ink">Mariana - Gestora</h1>
             </div>
-            <Link className="rounded-md border border-moss/20 bg-white px-3 py-2 text-sm font-medium text-ink" href="/login">
+            <Link className="btn-secondary rounded-md px-3 py-2 text-sm font-medium" href="/login">
               Voltar ao login real
             </Link>
           </div>
@@ -196,16 +196,16 @@ export default function DemoPage() {
                 const tasks = demoTasks.filter((task) => task.status === column.id);
 
                 return (
-                  <div className="rounded-lg border border-moss/15 bg-white p-3 shadow-soft" key={column.id}>
+                  <div className="glass-card p-3" key={column.id}>
                     <div className="mb-3 flex items-center justify-between">
                       <h3 className="font-semibold text-ink">{column.label}</h3>
-                      <span className="rounded-full bg-mist px-2 py-1 text-xs font-semibold text-moss">
+                      <span className="glass-chip rounded-full px-2 py-1 text-xs font-semibold text-moss">
                         {tasks.length}
                       </span>
                     </div>
                     <div className="space-y-3">
                       {tasks.map((task) => (
-                        <article className="rounded-md border border-moss/10 bg-linen p-3" key={task.id}>
+                        <article className="glass-chip rounded-md p-3" key={task.id}>
                           <div className="mb-3 flex items-center justify-between gap-2">
                             <StatusBadge status={task.status} />
                             <span className="text-xs font-medium uppercase text-moss">{task.priority}</span>
@@ -237,7 +237,7 @@ export default function DemoPage() {
             <CalendarEventList events={demoEvents} />
           </section>
 
-          <section className="rounded-lg border border-ambered/30 bg-amber-50 p-4 text-sm text-amber-900">
+          <section className="rounded-lg border border-magic-amber/30 bg-magic-amber/10 p-4 text-sm text-magic-amber">
             Esta é uma simulação com dados fictícios. O sistema real continua protegido por login e Supabase.
           </section>
         </div>

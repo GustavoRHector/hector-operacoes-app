@@ -83,8 +83,8 @@ export default async function UsuariosPage({
         <div
           className={`rounded-md px-4 py-3 text-sm font-medium ${
             feedback.type === "ok"
-              ? "bg-green-50 text-green-700"
-              : "bg-red-50 text-red-700"
+              ? "bg-green-50 text-magic-green"
+              : "bg-magic-red/15 text-magic-red border border-magic-red/40"
           }`}
         >
           {feedback.message}
