@@ -1,9 +1,19 @@
 import { CalendarCreateForm } from "@/components/CalendarCreateForm";
 import { CalendarEventList } from "@/components/CalendarEventList";
 import { CalendarMonth } from "@/components/CalendarMonth";
+import { GoogleConnect } from "@/components/GoogleConnect";
 import { requireProfile } from "@/lib/auth";
 import { listCalendarEvents, listProfiles } from "@/lib/data";
+import { getGoogleAccount } from "@/lib/google";
 import { canManageOperations } from "@/lib/security";
+
+// Traduz o retorno do fluxo Google em uma mensagem curta para o usuário.
+function googleFeedback(status?: string) {
+  if (status === "conectado") return { ok: true, message: "Google Calendar conectado com sucesso." };
+  if (status === "desconectado") return { ok: true, message: "Conta Google desconectada." };
+  if (status === "erro") return { ok: false, message: "Não foi possível conectar ao Google. Tente novamente." };
+  return null;
+}
 
 // Resolve o mês exibido a partir do parâmetro ?month=YYYY-MM, com o mês atual
 // (fuso de São Paulo) como padrão e proteção contra valores inválidos.
@@ -29,12 +39,17 @@ function resolveMonth(monthParam?: string) {
 export default async function AgendaPage({
   searchParams
 }: {
-  searchParams: { month?: string };
+  searchParams: { month?: string; google?: string };
 }) {
   const profile = await requireProfile();
-  const [events, profiles] = await Promise.all([listCalendarEvents(), listProfiles()]);
+  const [events, profiles, googleAccount] = await Promise.all([
+    listCalendarEvents(),
+    listProfiles(),
+    getGoogleAccount(profile.id)
+  ]);
   const { year, month } = resolveMonth(searchParams?.month);
   const canManage = canManageOperations(profile.role);
+  const feedback = googleFeedback(searchParams?.google);
 
   return (
     <div className="space-y-5">
@@ -45,6 +60,20 @@ export default async function AgendaPage({
           Compromissos, reuniões, visitas e prazos importantes da operação.
         </p>
       </section>
+
+      {feedback ? (
+        <div
+          className={`rounded-md border px-4 py-3 text-sm font-medium ${
+            feedback.ok
+              ? "border-magic-green/40 bg-magic-green/15 text-magic-green"
+              : "border-magic-red/40 bg-magic-red/15 text-magic-red"
+          }`}
+        >
+          {feedback.message}
+        </div>
+      ) : null}
+
+      <GoogleConnect email={googleAccount?.google_email ?? null} />
 
       <CalendarCreateForm profiles={profiles} />
       <CalendarMonth events={events} year={year} month={month} />

@@ -9,6 +9,16 @@ import { createClient } from "@/lib/supabase/server";
 
 const allowedEventTypes = ["Compromisso", "Reunião", "Prazo", "Renovação", "Visita"] as const;
 
+// Desconecta a conta Google do usuário, removendo os tokens guardados.
+// A RLS garante que cada usuário só apaga o próprio registro.
+export async function disconnectGoogleAction() {
+  const profile = await requireProfile();
+  const supabase = await createClient();
+  await supabase.from("google_accounts").delete().eq("user_id", profile.id);
+  revalidatePath("/agenda");
+  redirect("/agenda?google=desconectado");
+}
+
 // Cria compromisso na agenda usando empresa e criador do perfil autenticado.
 export async function createCalendarEventAction(formData: FormData) {
   const profile = await requireProfile();
