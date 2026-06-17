@@ -1,6 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/tarefas",
+  "/processos",
+  "/pendencias",
+  "/unidades",
+  "/agenda",
+  "/usuarios"
+];
+
 // Atualiza a sessão do Supabase no middleware e bloqueia acesso sem login.
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -8,7 +18,15 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+  // Falha segura: bloqueia acesso às rotas protegidas se as variáveis não estiverem configuradas.
   if (!supabaseUrl || !supabaseAnonKey) {
+    const pathname = request.nextUrl.pathname;
+    const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+    if (isProtected) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/login";
+      return NextResponse.redirect(redirectUrl);
+    }
     return response;
   }
 
@@ -34,13 +52,9 @@ export async function middleware(request: NextRequest) {
     data: { user }
   } = await supabase.auth.getUser();
 
-  const isProtectedRoute =
-    request.nextUrl.pathname.startsWith("/dashboard") ||
-    request.nextUrl.pathname.startsWith("/tarefas") ||
-    request.nextUrl.pathname.startsWith("/processos") ||
-    request.nextUrl.pathname.startsWith("/pendencias") ||
-    request.nextUrl.pathname.startsWith("/unidades") ||
-    request.nextUrl.pathname.startsWith("/agenda");
+  const isProtectedRoute = PROTECTED_PREFIXES.some((p) =>
+    request.nextUrl.pathname.startsWith(p)
+  );
 
   if (isProtectedRoute && !user) {
     const redirectUrl = request.nextUrl.clone();

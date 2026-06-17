@@ -86,6 +86,15 @@ export async function removeUserAction(formData: FormData) {
   const targetId = getUuid(formData, "user_id");
   if (targetId === profile.id) redirect("/usuarios?error=autoremocao");
 
+  // Verifica via RLS que o alvo pertence à mesma empresa antes de usar o admin client.
+  const supabase = await createClient();
+  const { data: targetProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", targetId)
+    .single();
+  if (!targetProfile) redirect("/usuarios?error=dados");
+
   const adminClient = createAdminClient();
   const { error } = await adminClient.auth.admin.deleteUser(targetId);
 
