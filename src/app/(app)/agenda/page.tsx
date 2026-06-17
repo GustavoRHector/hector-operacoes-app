@@ -46,12 +46,15 @@ export default async function AgendaPage({
 
   return (
     <div className="space-y-5">
-      <section>
-        <p className="text-sm font-medium uppercase text-clay">Calendário interno</p>
-        <h1 className="mt-1 text-2xl font-semibold text-ink">Agenda</h1>
-        <p className="mt-2 max-w-2xl text-sm text-moss">
-          Compromissos, reuniões, visitas e prazos importantes da operação.
-        </p>
+      <section className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium uppercase text-clay">Calendário interno</p>
+          <h1 className="mt-1 text-2xl font-semibold text-ink">Agenda</h1>
+          <p className="mt-2 max-w-2xl text-sm text-moss">
+            Compromissos, reuniões, visitas e prazos importantes da operação.
+          </p>
+        </div>
+        <GoogleConnect email={googleAccount?.google_email ?? null} />
       </section>
 
       {feedback ? (
@@ -65,8 +68,6 @@ export default async function AgendaPage({
           {feedback.message}
         </div>
       ) : null}
-
-      <GoogleConnect email={googleAccount?.google_email ?? null} />
 
       <CalendarMonth
         events={events}
