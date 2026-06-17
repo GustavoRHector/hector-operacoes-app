@@ -1,10 +1,10 @@
 import { CalendarCreateForm } from "@/components/CalendarCreateForm";
 import { CalendarEventList } from "@/components/CalendarEventList";
-import { CalendarMonth } from "@/components/CalendarMonth";
+import { CalendarMonth, type CalendarDisplayEvent } from "@/components/CalendarMonth";
 import { GoogleConnect } from "@/components/GoogleConnect";
 import { requireProfile } from "@/lib/auth";
 import { listCalendarEvents, listProfiles } from "@/lib/data";
-import { getGoogleAccount } from "@/lib/google";
+import { getGoogleAccount, listGoogleEvents } from "@/lib/google";
 import { canManageOperations } from "@/lib/security";
 
 // Traduz o retorno do fluxo Google em uma mensagem curta para o usuário.
@@ -44,6 +44,31 @@ export default async function AgendaPage({
   const canManage = canManageOperations(profile.role);
   const feedback = googleFeedback(sp?.google);
 
+  // Busca os eventos do Google numa janela ao redor do mês atual (mês anterior
+  // até +2), suficiente para a navegação típica sem recarregar a cada mês.
+  const now = new Date();
+  const windowMin = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString();
+  const windowMax = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 3, 1)).toISOString();
+  const googleEvents = googleAccount
+    ? await listGoogleEvents(profile.id, windowMin, windowMax)
+    : [];
+
+  // Mescla eventos internos e do Google num formato único para a grade.
+  const displayEvents: CalendarDisplayEvent[] = [
+    ...events.map((e) => ({
+      id: e.id,
+      title: e.title,
+      starts_at: e.starts_at,
+      source: "internal" as const
+    })),
+    ...googleEvents.map((g) => ({
+      id: g.id,
+      title: g.title,
+      starts_at: g.starts_at,
+      source: "google" as const
+    }))
+  ];
+
   return (
     <div className="space-y-5">
       <section className="flex flex-wrap items-start justify-between gap-3">
@@ -70,7 +95,7 @@ export default async function AgendaPage({
       ) : null}
 
       <CalendarMonth
-        events={events}
+        events={displayEvents}
         initialYear={today.year}
         initialMonth={today.month}
         todayKey={today.key}

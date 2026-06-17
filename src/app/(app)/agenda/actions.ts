@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { getCalendarEventById } from "@/lib/data";
+import { createGoogleEvent, getGoogleAccount } from "@/lib/google";
 import { canManageOperations } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 
@@ -35,19 +36,41 @@ export async function createCalendarEventAction(formData: FormData) {
     redirect("/agenda?error=periodo");
   }
 
-  const { error } = await supabase.from("calendar_events").insert({
-    company_id: profile.company_id,
-    title,
-    description,
-    starts_at: startsAt,
-    ends_at: endsAt,
-    event_type: eventType,
-    responsible_id: responsibleId,
-    created_by: profile.id
-  });
+  // Insere o evento interno e recupera o id para mapear ao Google.
+  const { data: inserted, error } = await supabase
+    .from("calendar_events")
+    .insert({
+      company_id: profile.company_id,
+      title,
+      description,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      event_type: eventType,
+      responsible_id: responsibleId,
+      created_by: profile.id
+    })
+    .select("id")
+    .single();
 
-  if (error) {
+  if (error || !inserted) {
     redirect("/agenda?error=criar");
+  }
+
+  // Espelha no Google Calendar do criador, se ele tiver conta conectada.
+  // Falha no Google não impede o evento interno: o app continua sendo a fonte.
+  const account = await getGoogleAccount(profile.id);
+  if (account) {
+    // Sem hora de término, assume 1 hora de duração para o Google.
+    const endISO = endsAt ?? new Date(new Date(startsAt).getTime() + 60 * 60 * 1000).toISOString();
+    const googleId = await createGoogleEvent(profile.id, {
+      title,
+      description,
+      startISO: startsAt,
+      endISO
+    });
+    if (googleId) {
+      await supabase.from("calendar_events").update({ google_event_id: googleId }).eq("id", inserted.id);
+    }
   }
 
   revalidatePath("/agenda");

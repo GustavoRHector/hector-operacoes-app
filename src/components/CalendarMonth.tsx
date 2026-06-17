@@ -2,8 +2,15 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { CalendarEvent } from "@/lib/types";
 import { toDateKeyBR, toTimeBR } from "@/lib/utils";
+
+// Evento já achatado para exibição na grade; source diferencia interno x Google.
+export type CalendarDisplayEvent = {
+  id: string;
+  title: string;
+  starts_at: string;
+  source: "internal" | "google";
+};
 
 const weekdayLabels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const monthLabels = [
@@ -30,7 +37,7 @@ export function CalendarMonth({
   initialMonth,
   todayKey
 }: {
-  events: CalendarEvent[];
+  events: CalendarDisplayEvent[];
   initialYear: number;
   initialMonth: number; // 1-12
   todayKey: string;
@@ -40,7 +47,7 @@ export function CalendarMonth({
 
   // Agrupa os eventos por dia uma única vez para montar a grade.
   const eventsByDay = useMemo(() => {
-    const map = new Map<string, CalendarEvent[]>();
+    const map = new Map<string, CalendarDisplayEvent[]>();
     for (const event of events) {
       const key = toDateKeyBR(event.starts_at);
       const list = map.get(key) ?? [];
@@ -90,6 +97,15 @@ export function CalendarMonth({
         </button>
       </div>
 
+      <div className="mb-3 flex items-center gap-4 text-xs text-moss">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded bg-white/25" /> Interno
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded bg-celeste/50" /> Google
+        </span>
+      </div>
+
       <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold uppercase text-moss">
         {weekdayLabels.map((label) => (
           <div className="py-1" key={label}>
@@ -118,16 +134,27 @@ export function CalendarMonth({
                 {cell.day}
               </span>
               <div className="mt-1 space-y-1">
-                {dayEvents.map((event) => (
-                  <Link
-                    className="block truncate rounded bg-white/15 px-1.5 py-0.5 text-[11px] font-medium text-white transition hover:bg-white/25"
-                    href={`/agenda/${event.id}`}
-                    key={event.id}
-                    title={event.title}
-                  >
-                    {toTimeBR(event.starts_at)} {event.title}
-                  </Link>
-                ))}
+                {dayEvents.map((event) =>
+                  event.source === "google" ? (
+                    // Eventos do Google são apenas exibidos (não editáveis aqui).
+                    <span
+                      className="block truncate rounded bg-celeste/25 px-1.5 py-0.5 text-[11px] font-medium text-white"
+                      key={`g-${event.id}`}
+                      title={`Google: ${event.title}`}
+                    >
+                      {toTimeBR(event.starts_at)} {event.title}
+                    </span>
+                  ) : (
+                    <Link
+                      className="block truncate rounded bg-white/15 px-1.5 py-0.5 text-[11px] font-medium text-white transition hover:bg-white/25"
+                      href={`/agenda/${event.id}`}
+                      key={event.id}
+                      title={event.title}
+                    >
+                      {toTimeBR(event.starts_at)} {event.title}
+                    </Link>
+                  )
+                )}
               </div>
             </div>
           );

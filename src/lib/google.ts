@@ -124,3 +124,79 @@ export async function getGoogleAccount(userId: string) {
     .single();
   return data;
 }
+
+export type GoogleEventDisplay = {
+  id: string;
+  title: string;
+  starts_at: string;
+};
+
+type GoogleApiEvent = {
+  id: string;
+  summary?: string;
+  start?: { dateTime?: string; date?: string };
+};
+
+// Lista eventos da agenda principal do Google do usuário em um intervalo.
+// singleEvents=true expande eventos recorrentes em ocorrências individuais.
+export async function listGoogleEvents(
+  userId: string,
+  timeMinISO: string,
+  timeMaxISO: string
+): Promise<GoogleEventDisplay[]> {
+  const token = await getValidAccessToken(userId);
+  if (!token) return [];
+
+  const params = new URLSearchParams({
+    timeMin: timeMinISO,
+    timeMax: timeMaxISO,
+    singleEvents: "true",
+    orderBy: "startTime",
+    maxResults: "250"
+  });
+
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) return [];
+
+  const data = (await res.json()) as { items?: GoogleApiEvent[] };
+  const items = data.items ?? [];
+
+  return items
+    .map((it): GoogleEventDisplay | null => {
+      // Evento com hora usa dateTime; evento de dia inteiro usa date (sem hora).
+      const start = it.start?.dateTime ?? (it.start?.date ? `${it.start.date}T00:00:00-03:00` : null);
+      if (!start) return null;
+      return { id: it.id, title: it.summary ?? "(sem título)", starts_at: start };
+    })
+    .filter((e): e is GoogleEventDisplay => e !== null);
+}
+
+// Cria um evento no Google Calendar do usuário e retorna o id gerado, para
+// mapear ao evento interno e permitir espelhar edições no futuro.
+export async function createGoogleEvent(
+  userId: string,
+  event: { title: string; description: string | null; startISO: string; endISO: string }
+): Promise<string | null> {
+  const token = await getValidAccessToken(userId);
+  if (!token) return null;
+
+  const body = {
+    summary: event.title,
+    description: event.description ?? undefined,
+    start: { dateTime: event.startISO, timeZone: "America/Sao_Paulo" },
+    end: { dateTime: event.endISO, timeZone: "America/Sao_Paulo" }
+  };
+
+  const res = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) return null;
+
+  const data = (await res.json()) as { id?: string };
+  return data.id ?? null;
+}
