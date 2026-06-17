@@ -16,8 +16,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Env vars ausentes" }, { status: 500 });
   }
 
+  // Remove qualquer sufixo de path (/rest/v1, /auth/v1, etc) da URL base.
+  const baseUrl = url.replace(/\/(rest|auth)\/v\d.*$/, "");
+  const targetUrl = `${baseUrl}/auth/v1/admin/users/4a67638a-617e-4358-ae9e-8a60aa2ada54`;
+
   const res = await fetch(
-    `${url}/auth/v1/admin/users/4a67638a-617e-4358-ae9e-8a60aa2ada54`,
+    targetUrl,
     {
       method: "PUT",
       headers: {
