@@ -6,9 +6,10 @@ import { getCalendarEventById, listProfiles } from "@/lib/data";
 import { canManageOperations } from "@/lib/security";
 
 // Tela de edição de compromisso. Pode editar quem é gestão, criador ou responsável.
-export default async function CalendarEditPage({ params }: { params: { id: string } }) {
+export default async function CalendarEditPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const profile = await requireProfile();
-  const [event, profiles] = await Promise.all([getCalendarEventById(params.id), listProfiles()]);
+  const [event, profiles] = await Promise.all([getCalendarEventById(id), listProfiles()]);
 
   if (!event) {
     notFound();

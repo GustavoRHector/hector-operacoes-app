@@ -7,7 +7,8 @@ import { canManageOperations } from "@/lib/security";
 
 // Tela de edição completa de tarefa, restrita a perfis de gestão.
 // Usuário comum continua movendo o status pelos botões do quadro Kanban.
-export default async function TaskEditPage({ params }: { params: { id: string } }) {
+export default async function TaskEditPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const profile = await requireProfile();
 
   // Defesa em profundidade: bloqueia o acesso antes mesmo de carregar dados.
@@ -15,7 +16,7 @@ export default async function TaskEditPage({ params }: { params: { id: string } 
     redirect("/tarefas?error=permissao");
   }
 
-  const [task, profiles] = await Promise.all([getTaskById(params.id), listProfiles()]);
+  const [task, profiles] = await Promise.all([getTaskById(id), listProfiles()]);
 
   if (!task) {
     notFound();

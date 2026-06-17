@@ -6,7 +6,8 @@ import { getRecurringPendingForEdit, listProfiles, listUnits } from "@/lib/data"
 import { canManageOperations } from "@/lib/security";
 
 // Tela de edição dos dados da pendência recorrente, restrita a perfis de gestão.
-export default async function RecurringPendingEditPage({ params }: { params: { id: string } }) {
+export default async function RecurringPendingEditPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const profile = await requireProfile();
 
   // Defesa em profundidade: bloqueia o acesso antes mesmo de carregar dados.
@@ -15,7 +16,7 @@ export default async function RecurringPendingEditPage({ params }: { params: { i
   }
 
   const [pending, profiles, units] = await Promise.all([
-    getRecurringPendingForEdit(params.id),
+    getRecurringPendingForEdit(id),
     listProfiles(),
     listUnits()
   ]);

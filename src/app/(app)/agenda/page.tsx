@@ -39,17 +39,18 @@ function resolveMonth(monthParam?: string) {
 export default async function AgendaPage({
   searchParams
 }: {
-  searchParams: { month?: string; google?: string };
+  searchParams: Promise<{ month?: string; google?: string }>;
 }) {
+  const sp = await searchParams;
   const profile = await requireProfile();
   const [events, profiles, googleAccount] = await Promise.all([
     listCalendarEvents(),
     listProfiles(),
     getGoogleAccount(profile.id)
   ]);
-  const { year, month } = resolveMonth(searchParams?.month);
+  const { year, month } = resolveMonth(sp?.month);
   const canManage = canManageOperations(profile.role);
-  const feedback = googleFeedback(searchParams?.google);
+  const feedback = googleFeedback(sp?.google);
 
   return (
     <div className="space-y-5">

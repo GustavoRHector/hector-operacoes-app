@@ -2,12 +2,13 @@ import { LockKeyhole } from "lucide-react";
 import { signInAction } from "@/app/login/actions";
 
 // Exibe a tela pública de login sem carregar dados internos da empresa.
-export default function LoginPage({
+export default async function LoginPage({
   searchParams
 }: {
-  searchParams: { error?: string; redirectTo?: string };
+  searchParams: Promise<{ error?: string; redirectTo?: string }>;
 }) {
-  const errorMessage = getLoginErrorMessage(searchParams.error);
+  const sp = await searchParams;
+  const errorMessage = getLoginErrorMessage(sp.error);
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
@@ -29,7 +30,7 @@ export default function LoginPage({
         ) : null}
 
         <form action={signInAction} className="space-y-4">
-          <input type="hidden" name="redirectTo" value={searchParams.redirectTo ?? "/dashboard"} />
+          <input type="hidden" name="redirectTo" value={sp.redirectTo ?? "/dashboard"} />
 
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-ink">E-mail</span>

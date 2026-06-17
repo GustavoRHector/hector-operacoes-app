@@ -6,7 +6,8 @@ import { getProcessById, listProfiles } from "@/lib/data";
 import { canManageOperations } from "@/lib/security";
 
 // Tela de edição de um processo, restrita a perfis com permissão de gestão.
-export default async function ProcessEditPage({ params }: { params: { id: string } }) {
+export default async function ProcessEditPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const profile = await requireProfile();
 
   // Defesa em profundidade: bloqueia o acesso antes mesmo de carregar dados.
@@ -14,7 +15,7 @@ export default async function ProcessEditPage({ params }: { params: { id: string
     redirect("/processos?error=permissao");
   }
 
-  const [process, profiles] = await Promise.all([getProcessById(params.id), listProfiles()]);
+  const [process, profiles] = await Promise.all([getProcessById(id), listProfiles()]);
 
   if (!process) {
     notFound();

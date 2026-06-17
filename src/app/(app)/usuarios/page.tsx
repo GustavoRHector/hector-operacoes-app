@@ -11,8 +11,9 @@ import type { ProfileWithEmail, UserRole } from "@/lib/types";
 export default async function UsuariosPage({
   searchParams
 }: {
-  searchParams: { ok?: string; error?: string };
+  searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
+  const sp = await searchParams;
   const profile = await requireProfile();
   if (!canManageSettings(profile.role)) redirect("/dashboard");
 
@@ -41,29 +42,29 @@ export default async function UsuariosPage({
     }))
     .sort((a, b) => a.full_name.localeCompare(b.full_name, "pt-BR"));
 
-  const feedback = searchParams.ok
+  const feedback = sp.ok
     ? {
         type: "ok" as const,
         message:
-          searchParams.ok === "convidado"
+          sp.ok === "convidado"
             ? "Convite enviado com sucesso."
-            : searchParams.ok === "papel"
+            : sp.ok === "papel"
               ? "Perfil atualizado."
-              : searchParams.ok === "removido"
+              : sp.ok === "removido"
                 ? "Usuário removido."
                 : null
       }
-    : searchParams.error
+    : sp.error
       ? {
           type: "error" as const,
           message:
-            searchParams.error === "permissao"
+            sp.error === "permissao"
               ? "Sem permissão para esta ação."
-              : searchParams.error === "convite"
+              : sp.error === "convite"
                 ? "Erro ao enviar convite. Verifique se o e-mail já está cadastrado."
-                : searchParams.error === "autopromocao"
+                : sp.error === "autopromocao"
                   ? "Você não pode alterar seu próprio perfil aqui."
-                  : searchParams.error === "autoremocao"
+                  : sp.error === "autoremocao"
                     ? "Você não pode remover a si mesmo."
                     : "Ocorreu um erro. Tente novamente."
         }

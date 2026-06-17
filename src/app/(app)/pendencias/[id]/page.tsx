@@ -11,10 +11,11 @@ import { canManageOperations } from "@/lib/security";
 export default async function RecurringPendingDetailPage({
   params
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const profile = await requireProfile();
-  const pending = await getRecurringPendingById(params.id);
+  const pending = await getRecurringPendingById(id);
 
   if (!pending) {
     notFound();
