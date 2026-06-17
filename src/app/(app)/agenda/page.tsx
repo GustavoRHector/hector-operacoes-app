@@ -15,31 +15,23 @@ function googleFeedback(status?: string) {
   return null;
 }
 
-// Resolve o mês exibido a partir do parâmetro ?month=YYYY-MM, com o mês atual
-// (fuso de São Paulo) como padrão e proteção contra valores inválidos.
-function resolveMonth(monthParam?: string) {
-  const now = new Intl.DateTimeFormat("en-CA", {
+// Mês e dia atuais no fuso de São Paulo, para iniciar a grade e destacar hoje.
+function getTodayBR() {
+  const key = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
     year: "numeric",
-    month: "2-digit"
+    month: "2-digit",
+    day: "2-digit"
   }).format(new Date());
-
-  const value = /^\d{4}-\d{2}$/.test(monthParam ?? "") ? (monthParam as string) : now;
-  const [year, month] = value.split("-").map(Number);
-
-  if (month < 1 || month > 12) {
-    const [fy, fm] = now.split("-").map(Number);
-    return { year: fy, month: fm };
-  }
-
-  return { year, month };
+  const [year, month] = key.split("-").map(Number);
+  return { year, month, key };
 }
 
 // Exibe agenda da empresa: visão mensal em grade + lista cronológica.
 export default async function AgendaPage({
   searchParams
 }: {
-  searchParams: Promise<{ month?: string; google?: string }>;
+  searchParams: Promise<{ google?: string }>;
 }) {
   const sp = await searchParams;
   const profile = await requireProfile();
@@ -48,7 +40,7 @@ export default async function AgendaPage({
     listProfiles(),
     getGoogleAccount(profile.id)
   ]);
-  const { year, month } = resolveMonth(sp?.month);
+  const today = getTodayBR();
   const canManage = canManageOperations(profile.role);
   const feedback = googleFeedback(sp?.google);
 
@@ -76,8 +68,17 @@ export default async function AgendaPage({
 
       <GoogleConnect email={googleAccount?.google_email ?? null} />
 
-      <CalendarCreateForm profiles={profiles} />
-      <CalendarMonth events={events} year={year} month={month} />
+      <CalendarMonth
+        events={events}
+        initialYear={today.year}
+        initialMonth={today.month}
+        todayKey={today.key}
+      />
+
+      <section>
+        <h2 className="mb-3 text-lg font-semibold text-ink">Adicionar compromisso</h2>
+        <CalendarCreateForm profiles={profiles} />
+      </section>
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-ink">Próximos e anteriores</h2>

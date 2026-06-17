@@ -1,3 +1,6 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { CalendarEvent } from "@/lib/types";
 import { toDateKeyBR, toTimeBR } from "@/lib/utils";
@@ -19,28 +22,36 @@ const monthLabels = [
 ];
 
 // Exibe os compromissos do mês em grade, agrupados por dia (fuso de São Paulo).
-// year/month definem o mês exibido; a navegação é feita por links na página.
+// A navegação de mês é local (sem recarregar a página): os eventos já chegam
+// carregados e a troca apenas filtra o mês exibido no próprio navegador.
 export function CalendarMonth({
   events,
-  year,
-  month
+  initialYear,
+  initialMonth,
+  todayKey
 }: {
   events: CalendarEvent[];
-  year: number;
-  month: number; // 1-12
+  initialYear: number;
+  initialMonth: number; // 1-12
+  todayKey: string;
 }) {
-  // Agrupa os eventos por dia para montar cada célula sem recalcular na grade.
-  const eventsByDay = new Map<string, CalendarEvent[]>();
-  for (const event of events) {
-    const key = toDateKeyBR(event.starts_at);
-    const list = eventsByDay.get(key) ?? [];
-    list.push(event);
-    eventsByDay.set(key, list);
-  }
+  const [view, setView] = useState({ year: initialYear, month: initialMonth });
+  const { year, month } = view;
+
+  // Agrupa os eventos por dia uma única vez para montar a grade.
+  const eventsByDay = useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>();
+    for (const event of events) {
+      const key = toDateKeyBR(event.starts_at);
+      const list = map.get(key) ?? [];
+      list.push(event);
+      map.set(key, list);
+    }
+    return map;
+  }, [events]);
 
   const firstWeekday = new Date(year, month - 1, 1).getDay(); // 0 = domingo
   const daysInMonth = new Date(year, month, 0).getDate();
-  const todayKey = toDateKeyBR(new Date().toISOString());
 
   // Monta a sequência de células: espaços em branco antes do dia 1 e os dias do mês.
   const cells: Array<{ day: number; key: string } | null> = [];
@@ -52,28 +63,31 @@ export function CalendarMonth({
     cells.push({ day, key });
   }
 
-  const prev = month === 1 ? { y: year - 1, m: 12 } : { y: year, m: month - 1 };
-  const next = month === 12 ? { y: year + 1, m: 1 } : { y: year, m: month + 1 };
-  const monthParam = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
+  const goPrev = () =>
+    setView((v) => (v.month === 1 ? { year: v.year - 1, month: 12 } : { year: v.year, month: v.month - 1 }));
+  const goNext = () =>
+    setView((v) => (v.month === 12 ? { year: v.year + 1, month: 1 } : { year: v.year, month: v.month + 1 }));
 
   return (
     <section className="glass-card p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <Link
+        <button
           className="glass-input rounded-md px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-mist"
-          href={`/agenda?month=${monthParam(prev.y, prev.m)}`}
+          onClick={goPrev}
+          type="button"
         >
           ‹ Anterior
-        </Link>
+        </button>
         <h2 className="text-lg font-semibold text-ink">
           {monthLabels[month - 1]} de {year}
         </h2>
-        <Link
+        <button
           className="glass-input rounded-md px-3 py-1.5 text-sm font-medium text-ink transition hover:bg-mist"
-          href={`/agenda?month=${monthParam(next.y, next.m)}`}
+          onClick={goNext}
+          type="button"
         >
           Próximo ›
-        </Link>
+        </button>
       </div>
 
       <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold uppercase text-moss">
