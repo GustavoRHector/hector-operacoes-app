@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { toDateKeyBR, toTimeBR } from "@/lib/utils";
+import { updateGoogleEventAction } from "@/app/(app)/agenda/actions";
+import { toDateKeyBR, toDateTimeLocalBR, toTimeBR } from "@/lib/utils";
 
 // Evento achatado para exibição. Campos extras alimentam o modal de detalhes;
 // editLink (interno) e googleLink (Google) definem as ações disponíveis.
@@ -347,17 +348,20 @@ function DayList({
 }
 
 // Modal de detalhes do evento, exibido sobre a página (sem trocar de aba).
+// Interno: leitura + botão Editar. Google: edição inline salva direto no Google.
 function EventModal({ event, onClose }: { event: CalendarDisplayEvent; onClose: () => void }) {
+  const fullDate = formatFullDate(event.starts_at);
+  const niceDate = fullDate.charAt(0).toUpperCase() + fullDate.slice(1);
   const period = event.ends_at
     ? `${toTimeBR(event.starts_at)} – ${toTimeBR(event.ends_at)}`
     : toTimeBR(event.starts_at);
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div className="glass-card w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-panel w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-start justify-between gap-3">
           <span
             className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase ${
@@ -366,49 +370,104 @@ function EventModal({ event, onClose }: { event: CalendarDisplayEvent; onClose: 
           >
             {event.source === "google" ? "Google" : event.event_type ?? "Compromisso"}
           </span>
-          <button className="text-moss transition hover:text-ink" onClick={onClose} type="button">
+          <button className="text-moss transition hover:text-white" onClick={onClose} type="button">
             ✕
           </button>
         </div>
 
-        <h3 className="text-xl font-semibold text-ink">{event.title}</h3>
-        <p className="mt-1 text-sm capitalize text-moss">{formatFullDate(event.starts_at)}</p>
-        <p className="text-sm text-moss">{period}</p>
+        {event.source === "google" ? (
+          // Edição inline do evento do Google, salva via API (sem abrir aba).
+          <form action={updateGoogleEventAction} className="space-y-3">
+            <input name="google_event_id" type="hidden" value={event.id} />
 
-        {event.responsible_name ? (
-          <p className="mt-3 text-sm text-moss">
-            Responsável: <span className="text-ink">{event.responsible_name}</span>
-          </p>
-        ) : null}
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-white">Título</span>
+              <input
+                className="w-full glass-input rounded-md px-3 py-2 text-sm"
+                defaultValue={event.title}
+                maxLength={140}
+                name="title"
+                required
+              />
+            </label>
 
-        {event.description ? (
-          <p className="mt-3 whitespace-pre-line text-sm text-moss">{event.description}</p>
-        ) : null}
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-white">Início</span>
+                <input
+                  className="w-full glass-input rounded-md px-3 py-2 text-sm"
+                  defaultValue={toDateTimeLocalBR(event.starts_at)}
+                  name="starts_at"
+                  type="datetime-local"
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-white">Término</span>
+                <input
+                  className="w-full glass-input rounded-md px-3 py-2 text-sm"
+                  defaultValue={toDateTimeLocalBR(event.ends_at)}
+                  name="ends_at"
+                  type="datetime-local"
+                />
+              </label>
+            </div>
 
-        <div className="mt-5 flex flex-wrap gap-2">
-          {event.source === "internal" && event.editLink ? (
-            <Link className="btn-primary rounded-md px-4 py-2 text-sm font-medium" href={event.editLink}>
-              Editar
-            </Link>
-          ) : null}
-          {event.source === "google" && event.googleLink ? (
-            <a
-              className="btn-primary rounded-md px-4 py-2 text-sm font-medium"
-              href={event.googleLink}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              Abrir no Google
-            </a>
-          ) : null}
-          <button
-            className="btn-secondary rounded-md px-4 py-2 text-sm font-medium"
-            onClick={onClose}
-            type="button"
-          >
-            Fechar
-          </button>
-        </div>
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-white">Descrição</span>
+              <textarea
+                className="min-h-20 w-full glass-input rounded-md px-3 py-2 text-sm"
+                defaultValue={event.description ?? ""}
+                maxLength={1200}
+                name="description"
+              />
+            </label>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button className="btn-primary rounded-md px-4 py-2 text-sm font-medium" type="submit">
+                Salvar no Google
+              </button>
+              <button
+                className="btn-secondary rounded-md px-4 py-2 text-sm font-medium"
+                onClick={onClose}
+                type="button"
+              >
+                Fechar
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <h3 className="text-xl font-semibold text-white">{event.title}</h3>
+            <p className="mt-1 text-sm text-moss">{niceDate}</p>
+            <p className="text-sm text-moss">{period}</p>
+
+            {event.responsible_name ? (
+              <p className="mt-3 text-sm text-moss">
+                Responsável: <span className="text-white">{event.responsible_name}</span>
+              </p>
+            ) : null}
+
+            {event.description ? (
+              <p className="mt-3 whitespace-pre-line text-sm text-moss">{event.description}</p>
+            ) : null}
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              {event.editLink ? (
+                <Link className="btn-primary rounded-md px-4 py-2 text-sm font-medium" href={event.editLink}>
+                  Editar
+                </Link>
+              ) : null}
+              <button
+                className="btn-secondary rounded-md px-4 py-2 text-sm font-medium"
+                onClick={onClose}
+                type="button"
+              >
+                Fechar
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -11,7 +11,8 @@ import { canManageOperations } from "@/lib/security";
 function googleFeedback(status?: string) {
   if (status === "conectado") return { ok: true, message: "Google Calendar conectado com sucesso." };
   if (status === "desconectado") return { ok: true, message: "Conta Google desconectada." };
-  if (status === "erro") return { ok: false, message: "Não foi possível conectar ao Google. Tente novamente." };
+  if (status === "atualizado") return { ok: true, message: "Evento atualizado no Google." };
+  if (status === "erro") return { ok: false, message: "Não foi possível falar com o Google. Tente novamente." };
   return null;
 }
 
@@ -72,11 +73,11 @@ export default async function AgendaPage({
       id: g.id,
       title: g.title,
       starts_at: g.starts_at,
-      ends_at: null,
+      ends_at: g.ends_at,
       source: "google" as const,
       event_type: null,
       responsible_name: null,
-      description: null,
+      description: g.description,
       editLink: null,
       googleLink: g.htmlLink
     }))

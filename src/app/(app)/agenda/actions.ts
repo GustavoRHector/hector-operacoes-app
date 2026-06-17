@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { getCalendarEventById } from "@/lib/data";
-import { createGoogleEvent, getGoogleAccount } from "@/lib/google";
+import { createGoogleEvent, getGoogleAccount, updateGoogleEvent } from "@/lib/google";
 import { canManageOperations } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 
@@ -151,6 +151,41 @@ export async function deleteCalendarEventAction(formData: FormData) {
   revalidatePath("/agenda");
   revalidatePath("/dashboard");
   redirect("/agenda?deleted=1");
+}
+
+// Edita, direto pelo app, um evento que vive no Google Calendar do usuário.
+// Salva via API do Google (sem abrir aba) usando os tokens do próprio usuário.
+export async function updateGoogleEventAction(formData: FormData) {
+  const profile = await requireProfile();
+
+  const googleEventId = String(formData.get("google_event_id") ?? "").trim();
+  if (!/^[a-zA-Z0-9_]+$/.test(googleEventId)) {
+    redirect("/agenda?google=erro");
+  }
+
+  const title = getRequiredText(formData, "title", 140);
+  const description = getOptionalText(formData, "description", 1200);
+  const startsAt = getRequiredDateTime(formData, "starts_at");
+  const endsAtRaw = getOptionalDateTime(formData, "ends_at");
+  // Sem hora de término informada, assume 1 hora de duração.
+  const endsAt = endsAtRaw ?? new Date(new Date(startsAt).getTime() + 60 * 60 * 1000).toISOString();
+
+  if (new Date(endsAt).getTime() < new Date(startsAt).getTime()) {
+    redirect("/agenda?error=periodo");
+  }
+
+  const ok = await updateGoogleEvent(profile.id, googleEventId, {
+    title,
+    description,
+    startISO: startsAt,
+    endISO: endsAt
+  });
+  if (!ok) {
+    redirect("/agenda?google=erro");
+  }
+
+  revalidatePath("/agenda");
+  redirect("/agenda?google=atualizado");
 }
 
 // Lê texto obrigatório e limita o tamanho aceito.

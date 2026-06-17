@@ -129,14 +129,18 @@ export type GoogleEventDisplay = {
   id: string;
   title: string;
   starts_at: string;
+  ends_at: string | null;
+  description: string | null;
   htmlLink: string | null;
 };
 
 type GoogleApiEvent = {
   id: string;
   summary?: string;
+  description?: string;
   htmlLink?: string;
   start?: { dateTime?: string; date?: string };
+  end?: { dateTime?: string; date?: string };
 };
 
 // Lista eventos da agenda principal do Google do usuário em um intervalo.
@@ -171,10 +175,13 @@ export async function listGoogleEvents(
       // Evento com hora usa dateTime; evento de dia inteiro usa date (sem hora).
       const start = it.start?.dateTime ?? (it.start?.date ? `${it.start.date}T00:00:00-03:00` : null);
       if (!start) return null;
+      const end = it.end?.dateTime ?? null;
       return {
         id: it.id,
         title: it.summary ?? "(sem título)",
         starts_at: start,
+        ends_at: end,
+        description: it.description ?? null,
         htmlLink: it.htmlLink ?? null
       };
     })
@@ -206,4 +213,31 @@ export async function createGoogleEvent(
 
   const data = (await res.json()) as { id?: string };
   return data.id ?? null;
+}
+
+// Atualiza um evento existente no Google Calendar do usuário (PATCH parcial).
+export async function updateGoogleEvent(
+  userId: string,
+  googleEventId: string,
+  event: { title: string; description: string | null; startISO: string; endISO: string }
+): Promise<boolean> {
+  const token = await getValidAccessToken(userId);
+  if (!token) return false;
+
+  const body = {
+    summary: event.title,
+    description: event.description ?? "",
+    start: { dateTime: event.startISO, timeZone: "America/Sao_Paulo" },
+    end: { dateTime: event.endISO, timeZone: "America/Sao_Paulo" }
+  };
+
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}`,
+    {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }
+  );
+  return res.ok;
 }
