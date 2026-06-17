@@ -1,5 +1,13 @@
 export type UserRole = "admin" | "manager" | "member";
 
+// Perfil com e-mail do auth, usado apenas na tela de gestão de usuários (admin).
+export type ProfileWithEmail = {
+  id: string;
+  email: string;
+  full_name: string;
+  role: UserRole;
+};
+
 export type TaskStatus = "todo" | "doing" | "waiting" | "done";
 
 export type RecurringStatus = "ok" | "due_soon" | "expired" | "renewing" | "renewed";

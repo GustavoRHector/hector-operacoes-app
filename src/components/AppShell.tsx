@@ -6,10 +6,11 @@ import {
   FolderKanban,
   Kanban,
   LayoutDashboard,
-  LogOut
+  LogOut,
+  Users
 } from "lucide-react";
 import { signOutAction } from "@/app/login/actions";
-import { ROLE_LABELS } from "@/lib/security";
+import { ROLE_LABELS, canManageSettings } from "@/lib/security";
 import type { Profile } from "@/lib/types";
 
 const navigation = [
@@ -46,6 +47,15 @@ export function AppShell({ children, profile }: { children: React.ReactNode; pro
               </Link>
             );
           })}
+          {canManageSettings(profile.role) ? (
+            <Link
+              className="flex flex-col items-center gap-1 rounded-md px-2 py-2 text-xs font-medium text-moss transition hover:bg-mist hover:text-ink md:flex-row md:justify-start md:px-3 md:text-sm"
+              href="/usuarios"
+            >
+              <Users size={18} />
+              Usuários
+            </Link>
+          ) : null}
         </nav>
       </aside>
 

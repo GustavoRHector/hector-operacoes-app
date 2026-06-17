@@ -6,7 +6,8 @@ export const PROTECTED_ROUTES = [
   "/processos",
   "/pendencias",
   "/unidades",
-  "/agenda"
+  "/agenda",
+  "/usuarios"
 ];
 
 export const ROLE_LABELS: Record<UserRole, string> = {
