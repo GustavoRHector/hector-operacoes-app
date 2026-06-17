@@ -4,15 +4,19 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { toDateKeyBR, toTimeBR } from "@/lib/utils";
 
-// Evento já achatado para exibição; source diferencia interno x Google e
-// link/external definem para onde o clique leva (detalhe interno ou Google).
+// Evento achatado para exibição. Campos extras alimentam o modal de detalhes;
+// editLink (interno) e googleLink (Google) definem as ações disponíveis.
 export type CalendarDisplayEvent = {
   id: string;
   title: string;
   starts_at: string;
+  ends_at: string | null;
   source: "internal" | "google";
-  link: string;
-  external: boolean;
+  event_type: string | null;
+  responsible_name: string | null;
+  description: string | null;
+  editLink: string | null;
+  googleLink: string | null;
 };
 
 const weekdayLabels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -34,8 +38,7 @@ const monthLabels = [
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-// Operações sobre chaves de data "YYYY-MM-DD" tratadas como datas de calendário
-// puras (UTC ao meio-dia evita saltos por fuso/horário de verão).
+// Operações sobre chaves "YYYY-MM-DD" como datas de calendário puras (UTC).
 function partsOf(key: string) {
   const [y, m, d] = key.split("-").map(Number);
   return { y, m, d };
@@ -56,46 +59,59 @@ function weekdayOf(key: string) {
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
 
+// Data por extenso no fuso de São Paulo, para o cabeçalho do modal.
+function formatFullDate(iso: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  }).format(new Date(iso));
+}
+
 type View = "month" | "week" | "day";
 
-// Pílula de um evento; abre o detalhe interno ou o Google em nova aba.
-function EventChip({ event }: { event: CalendarDisplayEvent }) {
+// Pílula de um evento na grade; o clique abre o modal (não navega de imediato).
+function EventChip({
+  event,
+  onSelect
+}: {
+  event: CalendarDisplayEvent;
+  onSelect: (e: CalendarDisplayEvent) => void;
+}) {
   const tone =
     event.source === "google"
       ? "bg-celeste/25 text-white hover:bg-celeste/40"
       : "bg-white/15 text-white hover:bg-white/25";
-  const cls = `block truncate rounded px-1.5 py-0.5 text-[11px] font-medium transition ${tone}`;
-  const label = `${toTimeBR(event.starts_at)} ${event.title}`;
-
-  if (event.external) {
-    return (
-      <a className={cls} href={event.link} rel="noopener noreferrer" target="_blank" title={`Google: ${event.title}`}>
-        {label}
-      </a>
-    );
-  }
   return (
-    <Link className={cls} href={event.link} title={event.title}>
-      {label}
-    </Link>
+    <button
+      className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition ${tone}`}
+      onClick={() => onSelect(event)}
+      title={event.title}
+      type="button"
+    >
+      {toTimeBR(event.starts_at)} {event.title}
+    </button>
   );
 }
 
-// Calendário com visões de mês, semana e dia. Navegação local (sem recarregar):
-// os eventos já vêm carregados e a troca apenas re-filtra o período exibido.
+// Calendário com visões de mês, semana e dia. Navegação e detalhes acontecem
+// no próprio componente (cliente), sem recarregar nem trocar de aba.
 export function CalendarView({
   events,
   initialCursor,
   todayKey
 }: {
   events: CalendarDisplayEvent[];
-  initialCursor: string; // chave "YYYY-MM-DD" do dia atual
+  initialCursor: string;
   todayKey: string;
 }) {
   const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(initialCursor);
+  const [selected, setSelected] = useState<CalendarDisplayEvent | null>(null);
 
-  // Agrupa os eventos por dia (chave SP) e ordena por horário dentro do dia.
+  // Agrupa por dia (chave SP) e ordena por horário dentro do dia.
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalendarDisplayEvent[]>();
     for (const event of events) {
@@ -112,10 +128,8 @@ export function CalendarView({
 
   const go = (dir: number) =>
     setCursor((c) => (view === "month" ? addMonths(c, dir) : view === "week" ? addDays(c, dir * 7) : addDays(c, dir)));
-
   const goToday = () => setCursor(todayKey);
 
-  // Título conforme a visão.
   const { y, m, d } = partsOf(cursor);
   let title: string;
   if (view === "month") {
@@ -191,12 +205,14 @@ export function CalendarView({
       </div>
 
       {view === "month" ? (
-        <MonthGrid cursor={cursor} eventsByDay={eventsByDay} todayKey={todayKey} />
+        <MonthGrid cursor={cursor} eventsByDay={eventsByDay} todayKey={todayKey} onSelect={setSelected} />
       ) : view === "week" ? (
-        <WeekGrid cursor={cursor} eventsByDay={eventsByDay} todayKey={todayKey} />
+        <WeekGrid cursor={cursor} eventsByDay={eventsByDay} todayKey={todayKey} onSelect={setSelected} />
       ) : (
-        <DayList cursor={cursor} eventsByDay={eventsByDay} todayKey={todayKey} />
+        <DayList cursor={cursor} eventsByDay={eventsByDay} onSelect={setSelected} />
       )}
+
+      {selected ? <EventModal event={selected} onClose={() => setSelected(null)} /> : null}
     </section>
   );
 }
@@ -205,10 +221,10 @@ type GridProps = {
   cursor: string;
   eventsByDay: Map<string, CalendarDisplayEvent[]>;
   todayKey: string;
+  onSelect: (e: CalendarDisplayEvent) => void;
 };
 
-// Grade do mês inteiro.
-function MonthGrid({ cursor, eventsByDay, todayKey }: GridProps) {
+function MonthGrid({ cursor, eventsByDay, todayKey, onSelect }: GridProps) {
   const { y, m } = partsOf(cursor);
   const firstWeekday = weekdayOf(`${y}-${pad(m)}-01`);
   const daysInMonth = new Date(y, m, 0).getDate();
@@ -243,7 +259,7 @@ function MonthGrid({ cursor, eventsByDay, todayKey }: GridProps) {
               </span>
               <div className="mt-1 space-y-1">
                 {dayEvents.map((event) => (
-                  <EventChip event={event} key={`${event.source}-${event.id}`} />
+                  <EventChip event={event} key={`${event.source}-${event.id}`} onSelect={onSelect} />
                 ))}
               </div>
             </div>
@@ -254,8 +270,7 @@ function MonthGrid({ cursor, eventsByDay, todayKey }: GridProps) {
   );
 }
 
-// Visão de semana: 7 colunas com os eventos de cada dia.
-function WeekGrid({ cursor, eventsByDay, todayKey }: GridProps) {
+function WeekGrid({ cursor, eventsByDay, todayKey, onSelect }: GridProps) {
   const start = addDays(cursor, -weekdayOf(cursor));
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
 
@@ -279,7 +294,7 @@ function WeekGrid({ cursor, eventsByDay, todayKey }: GridProps) {
             </p>
             <div className="mt-2 space-y-1">
               {dayEvents.map((event) => (
-                <EventChip event={event} key={`${event.source}-${event.id}`} />
+                <EventChip event={event} key={`${event.source}-${event.id}`} onSelect={onSelect} />
               ))}
             </div>
           </div>
@@ -289,8 +304,15 @@ function WeekGrid({ cursor, eventsByDay, todayKey }: GridProps) {
   );
 }
 
-// Visão de dia: lista cronológica dos compromissos do dia escolhido.
-function DayList({ cursor, eventsByDay }: GridProps) {
+function DayList({
+  cursor,
+  eventsByDay,
+  onSelect
+}: {
+  cursor: string;
+  eventsByDay: Map<string, CalendarDisplayEvent[]>;
+  onSelect: (e: CalendarDisplayEvent) => void;
+}) {
   const dayEvents = eventsByDay.get(cursor) ?? [];
 
   if (dayEvents.length === 0) {
@@ -305,25 +327,89 @@ function DayList({ cursor, eventsByDay }: GridProps) {
     <div className="space-y-2">
       {dayEvents.map((event) => {
         const tone = event.source === "google" ? "border-celeste/40 bg-celeste/15" : "border-white/15 bg-white/10";
-        const inner = (
-          <div className={`flex items-center gap-3 rounded-md border px-3 py-2.5 transition hover:bg-white/15 ${tone}`}>
+        return (
+          <button
+            className={`flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left transition hover:bg-white/15 ${tone}`}
+            key={`${event.source}-${event.id}`}
+            onClick={() => onSelect(event)}
+            type="button"
+          >
             <span className="text-sm font-semibold text-ink">{toTimeBR(event.starts_at)}</span>
             <span className="truncate text-sm text-ink">{event.title}</span>
             {event.source === "google" ? (
               <span className="ml-auto text-[11px] uppercase text-celeste">Google</span>
             ) : null}
-          </div>
-        );
-        return event.external ? (
-          <a href={event.link} key={`g-${event.id}`} rel="noopener noreferrer" target="_blank">
-            {inner}
-          </a>
-        ) : (
-          <Link href={event.link} key={event.id}>
-            {inner}
-          </Link>
+          </button>
         );
       })}
+    </div>
+  );
+}
+
+// Modal de detalhes do evento, exibido sobre a página (sem trocar de aba).
+function EventModal({ event, onClose }: { event: CalendarDisplayEvent; onClose: () => void }) {
+  const period = event.ends_at
+    ? `${toTimeBR(event.starts_at)} – ${toTimeBR(event.ends_at)}`
+    : toTimeBR(event.starts_at);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div className="glass-card w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase ${
+              event.source === "google" ? "bg-celeste/20 text-celeste" : "bg-white/15 text-white"
+            }`}
+          >
+            {event.source === "google" ? "Google" : event.event_type ?? "Compromisso"}
+          </span>
+          <button className="text-moss transition hover:text-ink" onClick={onClose} type="button">
+            ✕
+          </button>
+        </div>
+
+        <h3 className="text-xl font-semibold text-ink">{event.title}</h3>
+        <p className="mt-1 text-sm capitalize text-moss">{formatFullDate(event.starts_at)}</p>
+        <p className="text-sm text-moss">{period}</p>
+
+        {event.responsible_name ? (
+          <p className="mt-3 text-sm text-moss">
+            Responsável: <span className="text-ink">{event.responsible_name}</span>
+          </p>
+        ) : null}
+
+        {event.description ? (
+          <p className="mt-3 whitespace-pre-line text-sm text-moss">{event.description}</p>
+        ) : null}
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          {event.source === "internal" && event.editLink ? (
+            <Link className="btn-primary rounded-md px-4 py-2 text-sm font-medium" href={event.editLink}>
+              Editar
+            </Link>
+          ) : null}
+          {event.source === "google" && event.googleLink ? (
+            <a
+              className="btn-primary rounded-md px-4 py-2 text-sm font-medium"
+              href={event.googleLink}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Abrir no Google
+            </a>
+          ) : null}
+          <button
+            className="btn-secondary rounded-md px-4 py-2 text-sm font-medium"
+            onClick={onClose}
+            type="button"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -54,23 +54,31 @@ export default async function AgendaPage({
     : [];
 
   // Mescla eventos internos e do Google num formato único para a grade.
-  // Interno abre o detalhe/edição; Google abre o evento no próprio Google.
+  // O clique abre um modal de detalhes; de lá, editar (interno) ou abrir no Google.
   const displayEvents: CalendarDisplayEvent[] = [
     ...events.map((e) => ({
       id: e.id,
       title: e.title,
       starts_at: e.starts_at,
+      ends_at: e.ends_at,
       source: "internal" as const,
-      link: `/agenda/${e.id}`,
-      external: false
+      event_type: e.event_type,
+      responsible_name: e.responsible_name,
+      description: e.description,
+      editLink: `/agenda/${e.id}`,
+      googleLink: null
     })),
     ...googleEvents.map((g) => ({
       id: g.id,
       title: g.title,
       starts_at: g.starts_at,
+      ends_at: null,
       source: "google" as const,
-      link: g.htmlLink ?? "https://calendar.google.com",
-      external: true
+      event_type: null,
+      responsible_name: null,
+      description: null,
+      editLink: null,
+      googleLink: g.htmlLink
     }))
   ];
 
