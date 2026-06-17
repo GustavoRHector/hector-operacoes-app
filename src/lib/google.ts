@@ -129,11 +129,13 @@ export type GoogleEventDisplay = {
   id: string;
   title: string;
   starts_at: string;
+  htmlLink: string | null;
 };
 
 type GoogleApiEvent = {
   id: string;
   summary?: string;
+  htmlLink?: string;
   start?: { dateTime?: string; date?: string };
 };
 
@@ -169,7 +171,12 @@ export async function listGoogleEvents(
       // Evento com hora usa dateTime; evento de dia inteiro usa date (sem hora).
       const start = it.start?.dateTime ?? (it.start?.date ? `${it.start.date}T00:00:00-03:00` : null);
       if (!start) return null;
-      return { id: it.id, title: it.summary ?? "(sem título)", starts_at: start };
+      return {
+        id: it.id,
+        title: it.summary ?? "(sem título)",
+        starts_at: start,
+        htmlLink: it.htmlLink ?? null
+      };
     })
     .filter((e): e is GoogleEventDisplay => e !== null);
 }

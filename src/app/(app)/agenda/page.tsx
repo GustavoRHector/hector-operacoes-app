@@ -1,6 +1,6 @@
 import { CalendarCreateForm } from "@/components/CalendarCreateForm";
 import { CalendarEventList } from "@/components/CalendarEventList";
-import { CalendarMonth, type CalendarDisplayEvent } from "@/components/CalendarMonth";
+import { CalendarView, type CalendarDisplayEvent } from "@/components/CalendarView";
 import { GoogleConnect } from "@/components/GoogleConnect";
 import { requireProfile } from "@/lib/auth";
 import { listCalendarEvents, listProfiles } from "@/lib/data";
@@ -54,18 +54,23 @@ export default async function AgendaPage({
     : [];
 
   // Mescla eventos internos e do Google num formato único para a grade.
+  // Interno abre o detalhe/edição; Google abre o evento no próprio Google.
   const displayEvents: CalendarDisplayEvent[] = [
     ...events.map((e) => ({
       id: e.id,
       title: e.title,
       starts_at: e.starts_at,
-      source: "internal" as const
+      source: "internal" as const,
+      link: `/agenda/${e.id}`,
+      external: false
     })),
     ...googleEvents.map((g) => ({
       id: g.id,
       title: g.title,
       starts_at: g.starts_at,
-      source: "google" as const
+      source: "google" as const,
+      link: g.htmlLink ?? "https://calendar.google.com",
+      external: true
     }))
   ];
 
@@ -94,12 +99,7 @@ export default async function AgendaPage({
         </div>
       ) : null}
 
-      <CalendarMonth
-        events={displayEvents}
-        initialYear={today.year}
-        initialMonth={today.month}
-        todayKey={today.key}
-      />
+      <CalendarView events={displayEvents} initialCursor={today.key} todayKey={today.key} />
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-ink">Adicionar compromisso</h2>
