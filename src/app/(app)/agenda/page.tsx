@@ -6,6 +6,7 @@ import { requireProfile } from "@/lib/auth";
 import { listCalendarEvents, listProfiles } from "@/lib/data";
 import { getGoogleAccount, listGoogleEvents } from "@/lib/google";
 import { canManageOperations } from "@/lib/security";
+import { createClient } from "@/lib/supabase/server";
 
 // Traduz o retorno do fluxo Google em uma mensagem curta para o usuário.
 function googleFeedback(status?: string) {
@@ -51,22 +52,45 @@ export default async function AgendaPage({
   const now = new Date();
   const windowMin = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString();
   const windowMax = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 3, 1)).toISOString();
-  const googleEventsRaw = googleAccount
+  const googleResult = googleAccount
     ? await listGoogleEvents(profile.id, windowMin, windowMax)
-    : [];
+    : { ok: false, events: [] };
+  const googleEventsRaw = googleResult.events;
+  const googleIdSet = new Set(googleEventsRaw.map((g) => g.id));
+
+  // Reconciliação Google → app: se um evento criado pelo app (tem google_event_id)
+  // sumiu do Google dentro da janela carregada, foi excluído lá → remove no app.
+  // Só roda quando a leitura do Google deu certo, para não apagar por engano.
+  let internalEvents = events;
+  if (googleResult.ok) {
+    const minT = new Date(windowMin).getTime();
+    const maxT = new Date(windowMax).getTime();
+    const deletedInGoogle = events.filter((e) => {
+      if (!e.google_event_id || googleIdSet.has(e.google_event_id)) return false;
+      const t = new Date(e.starts_at).getTime();
+      return t >= minT && t < maxT;
+    });
+    if (deletedInGoogle.length > 0) {
+      const ids = deletedInGoogle.map((e) => e.id);
+      const supabase = await createClient();
+      await supabase.from("calendar_events").delete().in("id", ids);
+      const removed = new Set(ids);
+      internalEvents = events.filter((e) => !removed.has(e.id));
+    }
+  }
 
   // Remove duplicatas: eventos criados no app já aparecem como internos (com cor),
   // então não devem reaparecer pela listagem do Google. Mantém só os que existem
   // exclusivamente no Google (criados direto por lá).
   const internalGoogleIds = new Set(
-    events.map((e) => e.google_event_id).filter((id): id is string => Boolean(id))
+    internalEvents.map((e) => e.google_event_id).filter((id): id is string => Boolean(id))
   );
   const googleEvents = googleEventsRaw.filter((g) => !internalGoogleIds.has(g.id));
 
   // Mescla eventos internos e do Google num formato único para a grade.
   // O clique abre um modal de detalhes; de lá, editar (interno) ou abrir no Google.
   const displayEvents: CalendarDisplayEvent[] = [
-    ...events.map((e) => ({
+    ...internalEvents.map((e) => ({
       id: e.id,
       title: e.title,
       starts_at: e.starts_at,
@@ -128,7 +152,7 @@ export default async function AgendaPage({
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-ink">Próximos e anteriores</h2>
-        <CalendarEventList events={events} currentUserId={profile.id} canManage={canManage} />
+        <CalendarEventList events={internalEvents} currentUserId={profile.id} canManage={canManage} />
       </section>
     </div>
   );

@@ -145,13 +145,15 @@ type GoogleApiEvent = {
 
 // Lista eventos da agenda principal do Google do usuário em um intervalo.
 // singleEvents=true expande eventos recorrentes em ocorrências individuais.
+// Retorna ok=false em qualquer falha, para que a reconciliação não apague
+// eventos internos por engano quando o Google está indisponível.
 export async function listGoogleEvents(
   userId: string,
   timeMinISO: string,
   timeMaxISO: string
-): Promise<GoogleEventDisplay[]> {
+): Promise<{ ok: boolean; events: GoogleEventDisplay[] }> {
   const token = await getValidAccessToken(userId);
-  if (!token) return [];
+  if (!token) return { ok: false, events: [] };
 
   const params = new URLSearchParams({
     timeMin: timeMinISO,
@@ -165,12 +167,12 @@ export async function listGoogleEvents(
     `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
-  if (!res.ok) return [];
+  if (!res.ok) return { ok: false, events: [] };
 
   const data = (await res.json()) as { items?: GoogleApiEvent[] };
   const items = data.items ?? [];
 
-  return items
+  const events = items
     .map((it): GoogleEventDisplay | null => {
       // Evento com hora usa dateTime; evento de dia inteiro usa date (sem hora).
       const start = it.start?.dateTime ?? (it.start?.date ? `${it.start.date}T00:00:00-03:00` : null);
@@ -186,6 +188,8 @@ export async function listGoogleEvents(
       };
     })
     .filter((e): e is GoogleEventDisplay => e !== null);
+
+  return { ok: true, events };
 }
 
 // Cria um evento no Google Calendar do usuário e retorna o id gerado, para
