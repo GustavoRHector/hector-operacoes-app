@@ -18,7 +18,7 @@ export async function listTasks() {
   const { data, error } = await supabase
     .from("tasks")
     .select(
-      "id, title, description, status, priority, due_date, assignee:profiles(full_name)"
+      "id, title, description, status, priority, due_date, assignee:profiles!assignee_id(full_name)"
     )
     .order("due_date", { ascending: true, nullsFirst: false });
 
@@ -225,7 +225,9 @@ export async function listCalendarEvents() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("calendar_events")
-    .select("id, title, description, starts_at, ends_at, event_type, responsible_id, created_by, color, google_event_id, responsible:profiles(full_name)")
+    .select(
+      "id, title, description, starts_at, ends_at, event_type, responsible_id, created_by, color, google_event_id, responsible:profiles!responsible_id(full_name)"
+    )
     .order("starts_at", { ascending: true });
 
   if (error) {
@@ -269,7 +271,9 @@ export async function listUpcomingCalendarEvents() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("calendar_events")
-    .select("id, title, description, starts_at, ends_at, event_type, responsible_id, created_by, color, google_event_id, responsible:profiles(full_name)")
+    .select(
+      "id, title, description, starts_at, ends_at, event_type, responsible_id, created_by, color, google_event_id, responsible:profiles!responsible_id(full_name)"
+    )
     .gte("starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true });
 
