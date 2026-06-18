@@ -74,17 +74,35 @@ function formatFullDate(iso: string) {
 type View = "month" | "week" | "day";
 
 // Pílula de um evento na grade; o clique abre o modal (não navega de imediato).
+// large=true (semana) mostra hora e título em linhas separadas, sem cortar o texto.
 function EventChip({
   event,
-  onSelect
+  onSelect,
+  large = false
 }: {
   event: CalendarDisplayEvent;
   onSelect: (e: CalendarDisplayEvent) => void;
+  large?: boolean;
 }) {
   const tone =
     event.source === "google"
       ? "bg-celeste/25 text-white hover:bg-celeste/40"
       : "bg-white/15 text-white hover:bg-white/25";
+
+  if (large) {
+    return (
+      <button
+        className={`block w-full rounded-md px-2 py-1.5 text-left text-xs font-medium transition ${tone}`}
+        onClick={() => onSelect(event)}
+        title={event.title}
+        type="button"
+      >
+        <span className="block text-[10px] opacity-80">{toTimeBR(event.starts_at)}</span>
+        <span className="block break-words leading-snug">{event.title}</span>
+      </button>
+    );
+  }
+
   return (
     <button
       className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition ${tone}`}
@@ -282,7 +300,7 @@ function WeekGrid({ cursor, eventsByDay, todayKey, onSelect }: GridProps) {
         const isToday = key === todayKey;
         return (
           <div
-            className={`min-h-40 rounded-md border p-1.5 text-left ${
+            className={`min-h-64 rounded-md border p-1.5 text-left ${
               isToday ? "border-ambered bg-ambered/10" : "border-moss/10"
             }`}
             key={key}
@@ -293,9 +311,9 @@ function WeekGrid({ cursor, eventsByDay, todayKey, onSelect }: GridProps) {
             <p className={`text-center text-sm font-semibold ${isToday ? "text-ink" : "text-moss"}`}>
               {partsOf(key).d}
             </p>
-            <div className="mt-2 space-y-1">
+            <div className="mt-2 space-y-1.5">
               {dayEvents.map((event) => (
-                <EventChip event={event} key={`${event.source}-${event.id}`} onSelect={onSelect} />
+                <EventChip event={event} key={`${event.source}-${event.id}`} large onSelect={onSelect} />
               ))}
             </div>
           </div>
