@@ -26,13 +26,16 @@ export type CalendarDisplayEvent = {
   googleLink: string | null;
 };
 
-// Tom da pílula: eventos do Google sempre em celeste; internos pela cor escolhida.
+// Tom da pílula: borda esquerda sólida (cor inconfundível mesmo sobre a aurora)
+// + fundo tonal. Google sempre celeste; internos pela cor escolhida.
 function chipTone(event: CalendarDisplayEvent) {
-  if (event.source === "google") return "bg-celeste/30 text-white hover:bg-celeste/45";
-  if (event.color === "red") return "bg-magic-red/45 text-white hover:bg-magic-red/60";
-  if (event.color === "yellow") return "bg-magic-amber/45 text-white hover:bg-magic-amber/60";
-  if (event.color === "green") return "bg-magic-green/40 text-white hover:bg-magic-green/55";
-  return "bg-white/15 text-white hover:bg-white/25";
+  if (event.source === "google") return "border-l-4 border-celeste bg-celeste/25 text-white hover:bg-celeste/40";
+  if (event.color === "red") return "border-l-4 border-magic-red bg-magic-red/25 text-white hover:bg-magic-red/40";
+  if (event.color === "yellow")
+    return "border-l-4 border-magic-amber bg-magic-amber/25 text-white hover:bg-magic-amber/40";
+  if (event.color === "green")
+    return "border-l-4 border-magic-green bg-magic-green/25 text-white hover:bg-magic-green/40";
+  return "border-l-4 border-white/40 bg-white/15 text-white hover:bg-white/25";
 }
 
 const weekdayLabels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -101,43 +104,45 @@ function EventChip({
 }) {
   const tone = chipTone(event);
   // Apenas eventos internos podem ser arrastados para outro dia.
+  // Usamos <div role="button"> (e não <button>) porque botões não iniciam
+  // o arrastar-e-soltar nativo de forma confiável em alguns navegadores.
   const draggable = event.source === "internal";
   const onDragStart = (e: DragEvent) => {
     e.dataTransfer.setData("text/plain", event.id);
     e.dataTransfer.effectAllowed = "move";
   };
+  const common = {
+    draggable,
+    onClick: () => onSelect(event),
+    onDragStart: draggable ? onDragStart : undefined,
+    role: "button" as const,
+    tabIndex: 0,
+    title: event.title
+  };
 
   if (large) {
     return (
-      <button
+      <div
         className={`block w-full rounded-md px-2 py-1.5 text-left text-xs font-medium transition ${tone} ${
-          draggable ? "cursor-move" : ""
+          draggable ? "cursor-move" : "cursor-pointer"
         }`}
-        draggable={draggable}
-        onClick={() => onSelect(event)}
-        onDragStart={draggable ? onDragStart : undefined}
-        title={event.title}
-        type="button"
+        {...common}
       >
         <span className="block text-[10px] opacity-80">{toTimeBR(event.starts_at)}</span>
         <span className="block break-words leading-snug">{event.title}</span>
-      </button>
+      </div>
     );
   }
 
   return (
-    <button
+    <div
       className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition ${tone} ${
-        draggable ? "cursor-move" : ""
+        draggable ? "cursor-move" : "cursor-pointer"
       }`}
-      draggable={draggable}
-      onClick={() => onSelect(event)}
-      onDragStart={draggable ? onDragStart : undefined}
-      title={event.title}
-      type="button"
+      {...common}
     >
       {toTimeBR(event.starts_at)} {event.title}
-    </button>
+    </div>
   );
 }
 
@@ -287,11 +292,21 @@ type GridProps = {
 };
 
 // Permite soltar um evento numa célula de dia, movendo-o para aquela data.
-function dropHandlers(dateKey: string, onMove: (id: string, key: string) => void) {
+function dropHandlers(
+  dateKey: string,
+  onMove: (id: string, key: string) => void,
+  setOver: (key: string | null) => void
+) {
   return {
     onDragOver: (e: DragEvent) => e.preventDefault(),
+    onDragEnter: (e: DragEvent) => {
+      e.preventDefault();
+      setOver(dateKey);
+    },
+    onDragLeave: () => setOver(null),
     onDrop: (e: DragEvent) => {
       e.preventDefault();
+      setOver(null);
       const id = e.dataTransfer.getData("text/plain");
       if (id) onMove(id, dateKey);
     }
@@ -299,6 +314,7 @@ function dropHandlers(dateKey: string, onMove: (id: string, key: string) => void
 }
 
 function MonthGrid({ cursor, eventsByDay, todayKey, onSelect, onMove }: GridProps) {
+  const [overKey, setOverKey] = useState<string | null>(null);
   const { y, m } = partsOf(cursor);
   const firstWeekday = weekdayOf(`${y}-${pad(m)}-01`);
   const daysInMonth = new Date(y, m, 0).getDate();
@@ -324,10 +340,14 @@ function MonthGrid({ cursor, eventsByDay, todayKey, onSelect, onMove }: GridProp
           return (
             <div
               className={`min-h-20 rounded-md border p-1 text-left ${
-                isToday ? "border-ambered bg-ambered/10" : "border-moss/10"
+                overKey === key
+                  ? "border-celeste ring-2 ring-celeste/60"
+                  : isToday
+                    ? "border-ambered bg-ambered/10"
+                    : "border-moss/10"
               }`}
               key={key}
-              {...dropHandlers(key, onMove)}
+              {...dropHandlers(key, onMove, setOverKey)}
             >
               <span className={`text-xs font-semibold ${isToday ? "text-ink" : "text-moss"}`}>
                 {partsOf(key).d}
@@ -346,6 +366,7 @@ function MonthGrid({ cursor, eventsByDay, todayKey, onSelect, onMove }: GridProp
 }
 
 function WeekGrid({ cursor, eventsByDay, todayKey, onSelect, onMove }: GridProps) {
+  const [overKey, setOverKey] = useState<string | null>(null);
   const start = addDays(cursor, -weekdayOf(cursor));
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
 
@@ -357,10 +378,14 @@ function WeekGrid({ cursor, eventsByDay, todayKey, onSelect, onMove }: GridProps
         return (
           <div
             className={`min-h-64 rounded-md border p-1.5 text-left ${
-              isToday ? "border-ambered bg-ambered/10" : "border-moss/10"
+              overKey === key
+                ? "border-celeste ring-2 ring-celeste/60"
+                : isToday
+                  ? "border-ambered bg-ambered/10"
+                  : "border-moss/10"
             }`}
             key={key}
-            {...dropHandlers(key, onMove)}
+            {...dropHandlers(key, onMove, setOverKey)}
           >
             <p className="text-center text-[11px] font-semibold uppercase text-moss">
               {weekdayLabels[weekdayOf(key)]}
