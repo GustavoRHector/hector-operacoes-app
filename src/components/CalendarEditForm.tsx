@@ -93,6 +93,19 @@ export function CalendarEditForm({
             </label>
           ) : null}
 
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-ink">Cor</span>
+            <select
+              className="w-full glass-input rounded-md px-3 py-2"
+              name="color"
+              defaultValue={event.color}
+            >
+              <option value="neutral">Neutro</option>
+              <option value="yellow">Médio</option>
+              <option value="red">Importante</option>
+            </select>
+          </label>
+
           <label className="block lg:col-span-2">
             <span className="mb-1 block text-sm font-medium text-ink">Descrição</span>
             <textarea

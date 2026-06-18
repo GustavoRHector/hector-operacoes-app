@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { createCalendarEventAction } from "@/app/(app)/agenda/actions";
 
 type ProfileOption = {
@@ -5,10 +8,40 @@ type ProfileOption = {
   full_name: string;
 };
 
-// Renderiza o cadastro de compromisso com action segura no servidor.
+// Opções de cor (apenas visual no app). Vermelho = importante, amarelo = médio.
+const colorOptions = [
+  { value: "neutral", label: "Neutro", dot: "bg-white/40" },
+  { value: "yellow", label: "Médio", dot: "bg-magic-amber" },
+  { value: "red", label: "Importante", dot: "bg-magic-red" }
+] as const;
+
+// Junta data e hora num valor "YYYY-MM-DDTHH:MM" que a action já entende.
+function joinDateTime(date: string, time: string) {
+  return date && time ? `${date}T${time}` : "";
+}
+
+// Cadastro de compromisso com data e hora separadas, replicação da data fim
+// e escolha de cor. A escrita continua na action segura do servidor.
 export function CalendarCreateForm({ profiles }: { profiles: ProfileOption[] }) {
+  const [startDate, setStartDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [color, setColor] = useState<string>("neutral");
+
+  // Ao escolher a data de início, replica na data de fim (o usuário pode mudar depois).
+  const onStartDateChange = (value: string) => {
+    setStartDate(value);
+    setEndDate(value);
+  };
+
   return (
     <form action={createCalendarEventAction} className="glass-card p-4">
+      {/* Valores combinados enviados à action (os campos visíveis abaixo só guiam o estado). */}
+      <input name="starts_at" type="hidden" value={joinDateTime(startDate, startTime)} />
+      <input name="ends_at" type="hidden" value={joinDateTime(endDate, endTime)} />
+      <input name="color" type="hidden" value={color} />
+
       <div className="grid gap-4 lg:grid-cols-2">
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-ink">Título</span>
@@ -31,15 +64,43 @@ export function CalendarCreateForm({ profiles }: { profiles: ProfileOption[] }) 
           </select>
         </label>
 
-        <label className="block">
+        <div className="block">
           <span className="mb-1 block text-sm font-medium text-ink">Início</span>
-          <input className="w-full glass-input rounded-md px-3 py-2" name="starts_at" type="datetime-local" required />
-        </label>
+          <div className="flex gap-2">
+            <input
+              className="w-full glass-input rounded-md px-3 py-2"
+              onChange={(e) => onStartDateChange(e.target.value)}
+              required
+              type="date"
+              value={startDate}
+            />
+            <input
+              className="w-36 glass-input rounded-md px-3 py-2"
+              onChange={(e) => setStartTime(e.target.value)}
+              required
+              type="time"
+              value={startTime}
+            />
+          </div>
+        </div>
 
-        <label className="block">
+        <div className="block">
           <span className="mb-1 block text-sm font-medium text-ink">Fim</span>
-          <input className="w-full glass-input rounded-md px-3 py-2" name="ends_at" type="datetime-local" />
-        </label>
+          <div className="flex gap-2">
+            <input
+              className="w-full glass-input rounded-md px-3 py-2"
+              onChange={(e) => setEndDate(e.target.value)}
+              type="date"
+              value={endDate}
+            />
+            <input
+              className="w-36 glass-input rounded-md px-3 py-2"
+              onChange={(e) => setEndTime(e.target.value)}
+              type="time"
+              value={endTime}
+            />
+          </div>
+        </div>
 
         <label className="block">
           <span className="mb-1 block text-sm font-medium text-ink">Responsável</span>
@@ -52,6 +113,25 @@ export function CalendarCreateForm({ profiles }: { profiles: ProfileOption[] }) 
             ))}
           </select>
         </label>
+
+        <div className="block">
+          <span className="mb-1 block text-sm font-medium text-ink">Cor</span>
+          <div className="flex gap-2">
+            {colorOptions.map((opt) => (
+              <button
+                className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+                  color === opt.value ? "bg-white text-blu" : "glass-input text-ink"
+                }`}
+                key={opt.value}
+                onClick={() => setColor(opt.value)}
+                type="button"
+              >
+                <span className={`h-3 w-3 rounded-full ${opt.dot}`} />
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <label className="block lg:col-span-2">
           <span className="mb-1 block text-sm font-medium text-ink">Descrição</span>

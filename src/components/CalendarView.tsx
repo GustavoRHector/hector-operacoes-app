@@ -13,12 +13,21 @@ export type CalendarDisplayEvent = {
   starts_at: string;
   ends_at: string | null;
   source: "internal" | "google";
+  color: "neutral" | "red" | "yellow";
   event_type: string | null;
   responsible_name: string | null;
   description: string | null;
   editLink: string | null;
   googleLink: string | null;
 };
+
+// Tom da pílula: eventos do Google sempre em celeste; internos pela cor escolhida.
+function chipTone(event: CalendarDisplayEvent) {
+  if (event.source === "google") return "bg-celeste/25 text-white hover:bg-celeste/40";
+  if (event.color === "red") return "bg-magic-red/35 text-white hover:bg-magic-red/50";
+  if (event.color === "yellow") return "bg-magic-amber/35 text-white hover:bg-magic-amber/50";
+  return "bg-white/15 text-white hover:bg-white/25";
+}
 
 const weekdayLabels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const weekdayFull = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -84,10 +93,7 @@ function EventChip({
   onSelect: (e: CalendarDisplayEvent) => void;
   large?: boolean;
 }) {
-  const tone =
-    event.source === "google"
-      ? "bg-celeste/25 text-white hover:bg-celeste/40"
-      : "bg-white/15 text-white hover:bg-white/25";
+  const tone = chipTone(event);
 
   if (large) {
     return (
@@ -345,7 +351,14 @@ function DayList({
   return (
     <div className="space-y-2">
       {dayEvents.map((event) => {
-        const tone = event.source === "google" ? "border-celeste/40 bg-celeste/15" : "border-white/15 bg-white/10";
+        const tone =
+          event.source === "google"
+            ? "border-celeste/40 bg-celeste/15"
+            : event.color === "red"
+              ? "border-magic-red/40 bg-magic-red/15"
+              : event.color === "yellow"
+                ? "border-magic-amber/40 bg-magic-amber/15"
+                : "border-white/15 bg-white/10";
         return (
           <button
             className={`flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left transition hover:bg-white/15 ${tone}`}

@@ -107,6 +107,9 @@ export type ProcessEditData = {
   notes: string | null;
 };
 
+// Cor visual do evento no app (não sincroniza com o Google).
+export type EventColor = "neutral" | "red" | "yellow";
+
 export type CalendarEvent = {
   id: string;
   title: string;
@@ -117,6 +120,7 @@ export type CalendarEvent = {
   responsible_name: string | null;
   responsible_id: string | null;
   created_by: string | null;
+  color: EventColor;
 };
 
 // Campos crus de um compromisso para preencher o formulário de edição.
@@ -130,4 +134,5 @@ export type CalendarEventEditData = {
   responsible_id: string | null;
   created_by: string | null;
   google_event_id: string | null;
+  color: EventColor;
 };

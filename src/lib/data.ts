@@ -225,7 +225,7 @@ export async function listCalendarEvents() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("calendar_events")
-    .select("id, title, description, starts_at, ends_at, event_type, responsible_id, created_by, responsible:profiles(full_name)")
+    .select("id, title, description, starts_at, ends_at, event_type, responsible_id, created_by, color, responsible:profiles(full_name)")
     .order("starts_at", { ascending: true });
 
   if (error) {
@@ -241,7 +241,8 @@ export async function listCalendarEvents() {
     event_type: event.event_type,
     responsible_name: getRelationText(event.responsible, "full_name"),
     responsible_id: event.responsible_id,
-    created_by: event.created_by
+    created_by: event.created_by,
+    color: (event.color ?? "neutral") as CalendarEvent["color"]
   })) satisfies CalendarEvent[];
 }
 
@@ -251,7 +252,7 @@ export async function getCalendarEventById(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("calendar_events")
-    .select("id, title, description, starts_at, ends_at, event_type, responsible_id, created_by, google_event_id")
+    .select("id, title, description, starts_at, ends_at, event_type, responsible_id, created_by, google_event_id, color")
     .eq("id", id)
     .single();
 
@@ -267,7 +268,7 @@ export async function listUpcomingCalendarEvents() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("calendar_events")
-    .select("id, title, description, starts_at, ends_at, event_type, responsible_id, created_by, responsible:profiles(full_name)")
+    .select("id, title, description, starts_at, ends_at, event_type, responsible_id, created_by, color, responsible:profiles(full_name)")
     .gte("starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true });
 
@@ -284,7 +285,8 @@ export async function listUpcomingCalendarEvents() {
     event_type: event.event_type,
     responsible_name: getRelationText(event.responsible, "full_name"),
     responsible_id: event.responsible_id,
-    created_by: event.created_by
+    created_by: event.created_by,
+    color: (event.color ?? "neutral") as CalendarEvent["color"]
   })) satisfies CalendarEvent[];
 }
 

@@ -9,6 +9,7 @@ import { canManageOperations } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 
 const allowedEventTypes = ["Compromisso", "Reunião", "Prazo", "Renovação", "Visita"] as const;
+const allowedColors = ["neutral", "red", "yellow"] as const;
 
 // Desconecta a conta Google do usuário, removendo os tokens guardados.
 // A RLS garante que cada usuário só apaga o próprio registro.
@@ -30,6 +31,7 @@ export async function createCalendarEventAction(formData: FormData) {
   const startsAt = getRequiredDateTime(formData, "starts_at");
   const endsAt = getOptionalDateTime(formData, "ends_at");
   const eventType = getAllowedValue(formData, "event_type", allowedEventTypes, "Compromisso");
+  const color = getAllowedValue(formData, "color", allowedColors, "neutral");
   const responsibleId = getOptionalUuid(formData, "responsible_id") ?? profile.id;
 
   if (endsAt && new Date(endsAt).getTime() < new Date(startsAt).getTime()) {
@@ -46,6 +48,7 @@ export async function createCalendarEventAction(formData: FormData) {
       starts_at: startsAt,
       ends_at: endsAt,
       event_type: eventType,
+      color,
       responsible_id: responsibleId,
       created_by: profile.id
     })
@@ -101,6 +104,7 @@ export async function updateCalendarEventAction(formData: FormData) {
   const startsAt = getRequiredDateTime(formData, "starts_at");
   const endsAt = getOptionalDateTime(formData, "ends_at");
   const eventType = getAllowedValue(formData, "event_type", allowedEventTypes, "Compromisso");
+  const color = getAllowedValue(formData, "color", allowedColors, "neutral");
 
   if (endsAt && new Date(endsAt).getTime() < new Date(startsAt).getTime()) {
     redirect(`/agenda/${eventId}?error=periodo`);
@@ -112,7 +116,8 @@ export async function updateCalendarEventAction(formData: FormData) {
     description,
     starts_at: startsAt,
     ends_at: endsAt,
-    event_type: eventType
+    event_type: eventType,
+    color
   };
   if (isManager) {
     update.responsible_id = getOptionalUuid(formData, "responsible_id") ?? profile.id;
