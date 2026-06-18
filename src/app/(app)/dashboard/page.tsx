@@ -1,19 +1,37 @@
 import { AlertTriangle, CalendarClock, CheckCircle2, FolderKanban, ListTodo } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { RecurringList } from "@/components/RecurringList";
+import { requireProfile } from "@/lib/auth";
 import { listProcesses, listRecurringPendings, listTasks, listUpcomingCalendarEvents } from "@/lib/data";
+import { getGoogleAccount, listGoogleEvents } from "@/lib/google";
 
 // Carrega os principais indicadores operacionais da empresa autenticada.
 export default async function DashboardPage() {
-  const [tasks, pendings, processes, upcomingEvents] = await Promise.all([
+  const profile = await requireProfile();
+  const [tasks, pendings, processes, upcomingEvents, googleAccount] = await Promise.all([
     listTasks(),
     listRecurringPendings(),
     listProcesses(),
-    listUpcomingCalendarEvents()
+    listUpcomingCalendarEvents(),
+    getGoogleAccount(profile.id)
   ]);
   const openTasks = tasks.filter((task) => task.status !== "done");
   const expiredPendings = pendings.filter((item) => item.status === "expired");
   const dueSoonPendings = pendings.filter((item) => item.status === "due_soon");
+
+  // Compromissos futuros = internos + os do Google (sem contar em dobro os que
+  // o app criou, que já aparecem como internos).
+  const nowISO = new Date().toISOString();
+  const now = new Date();
+  const windowMax = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 3, 1)).toISOString();
+  const googleResult = googleAccount
+    ? await listGoogleEvents(profile.id, nowISO, windowMax)
+    : { ok: false, events: [] };
+  const internalGoogleIds = new Set(
+    upcomingEvents.map((e) => e.google_event_id).filter((id): id is string => Boolean(id))
+  );
+  const googleUpcoming = googleResult.events.filter((g) => !internalGoogleIds.has(g.id));
+  const totalUpcoming = upcomingEvents.length + googleUpcoming.length;
 
   return (
     <div className="space-y-6">
@@ -25,7 +43,7 @@ export default async function DashboardPage() {
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={ListTodo} label="Tarefas abertas" value={openTasks.length} />
         <StatCard icon={FolderKanban} label="Processos ativos" value={processes.length} />
-        <StatCard icon={CalendarClock} label="Compromissos futuros" value={upcomingEvents.length} tone="warning" />
+        <StatCard icon={CalendarClock} label="Compromissos futuros" value={totalUpcoming} tone="warning" />
         <StatCard icon={AlertTriangle} label="Pendências vencidas" value={expiredPendings.length} tone="danger" />
       </section>
 
