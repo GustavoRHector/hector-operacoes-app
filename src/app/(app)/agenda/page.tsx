@@ -51,9 +51,17 @@ export default async function AgendaPage({
   const now = new Date();
   const windowMin = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString();
   const windowMax = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 3, 1)).toISOString();
-  const googleEvents = googleAccount
+  const googleEventsRaw = googleAccount
     ? await listGoogleEvents(profile.id, windowMin, windowMax)
     : [];
+
+  // Remove duplicatas: eventos criados no app já aparecem como internos (com cor),
+  // então não devem reaparecer pela listagem do Google. Mantém só os que existem
+  // exclusivamente no Google (criados direto por lá).
+  const internalGoogleIds = new Set(
+    events.map((e) => e.google_event_id).filter((id): id is string => Boolean(id))
+  );
+  const googleEvents = googleEventsRaw.filter((g) => !internalGoogleIds.has(g.id));
 
   // Mescla eventos internos e do Google num formato único para a grade.
   // O clique abre um modal de detalhes; de lá, editar (interno) ou abrir no Google.

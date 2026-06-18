@@ -122,6 +122,7 @@ export type CalendarEvent = {
   responsible_id: string | null;
   created_by: string | null;
   color: EventColor;
+  google_event_id: string | null;
 };
 
 // Campos crus de um compromisso para preencher o formulário de edição.

@@ -110,7 +110,8 @@ const demoEvents: CalendarEvent[] = [
     responsible_name: "Mariana",
     responsible_id: null,
     created_by: null,
-    color: "neutral"
+    color: "neutral",
+    google_event_id: null
   },
   {
     id: "demo-event-2",
@@ -122,7 +123,8 @@ const demoEvents: CalendarEvent[] = [
     responsible_name: "Bianca",
     responsible_id: null,
     created_by: null,
-    color: "red"
+    color: "red",
+    google_event_id: null
   }
 ];
 
