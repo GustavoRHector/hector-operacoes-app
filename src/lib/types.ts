@@ -129,4 +129,5 @@ export type CalendarEventEditData = {
   event_type: string;
   responsible_id: string | null;
   created_by: string | null;
+  google_event_id: string | null;
 };

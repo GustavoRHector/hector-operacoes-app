@@ -251,7 +251,7 @@ export async function getCalendarEventById(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("calendar_events")
-    .select("id, title, description, starts_at, ends_at, event_type, responsible_id, created_by")
+    .select("id, title, description, starts_at, ends_at, event_type, responsible_id, created_by, google_event_id")
     .eq("id", id)
     .single();
 

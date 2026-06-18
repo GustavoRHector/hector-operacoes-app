@@ -125,6 +125,31 @@ export async function updateCalendarEventAction(formData: FormData) {
     redirect(`/agenda/${eventId}?error=salvar`);
   }
 
+  // Espelha a edição no Google do usuário, se ele tiver conta conectada.
+  // Se o evento ainda não existia no Google, cria e guarda o id; caso contrário, atualiza.
+  const account = await getGoogleAccount(profile.id);
+  if (account) {
+    const endISO = endsAt ?? new Date(new Date(startsAt).getTime() + 60 * 60 * 1000).toISOString();
+    if (event.google_event_id) {
+      await updateGoogleEvent(profile.id, event.google_event_id, {
+        title,
+        description,
+        startISO: startsAt,
+        endISO
+      });
+    } else {
+      const googleId = await createGoogleEvent(profile.id, {
+        title,
+        description,
+        startISO: startsAt,
+        endISO
+      });
+      if (googleId) {
+        await supabase.from("calendar_events").update({ google_event_id: googleId }).eq("id", eventId);
+      }
+    }
+  }
+
   revalidatePath("/agenda");
   revalidatePath("/dashboard");
   redirect("/agenda?updated=1");
@@ -142,10 +167,21 @@ export async function deleteCalendarEventAction(formData: FormData) {
   const supabase = await createClient();
   const eventId = getRequiredUuid(formData, "event_id");
 
+  // Busca o mapeamento com o Google antes de remover o registro interno.
+  const event = await getCalendarEventById(eventId);
+
   const { error } = await supabase.from("calendar_events").delete().eq("id", eventId);
 
   if (error) {
     redirect(`/agenda/${eventId}?error=excluir`);
+  }
+
+  // Espelha a exclusão no Google do usuário, se houver mapeamento e conta conectada.
+  if (event?.google_event_id) {
+    const account = await getGoogleAccount(profile.id);
+    if (account) {
+      await deleteGoogleEvent(profile.id, event.google_event_id);
+    }
   }
 
   revalidatePath("/agenda");
