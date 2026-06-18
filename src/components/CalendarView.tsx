@@ -1,6 +1,6 @@
 "use client";
 
-import { type DragEvent, useMemo, useState, useTransition } from "react";
+import { type PointerEvent as ReactPointerEvent, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -91,57 +91,55 @@ function formatFullDate(iso: string) {
 
 type View = "month" | "week" | "day";
 
-// Pílula de um evento na grade; o clique abre o modal (não navega de imediato).
-// large=true (semana) mostra hora e título em linhas separadas, sem cortar o texto.
+// Controlador de arrastar baseado em pointer events (funciona com mouse e toque).
+type DragApi = {
+  down: (event: CalendarDisplayEvent, e: ReactPointerEvent) => void;
+  move: (e: ReactPointerEvent) => void;
+  up: (e: ReactPointerEvent) => void;
+};
+
+// Pílula de um evento na grade. Eventos internos podem ser arrastados (pointer
+// events); o clique sem arrastar abre o modal. Google só clica (abre o modal).
 function EventChip({
   event,
   onSelect,
+  drag,
   large = false
 }: {
   event: CalendarDisplayEvent;
   onSelect: (e: CalendarDisplayEvent) => void;
+  drag: DragApi;
   large?: boolean;
 }) {
   const tone = chipTone(event);
-  // Apenas eventos internos podem ser arrastados para outro dia.
-  // Usamos <div role="button"> (e não <button>) porque botões não iniciam
-  // o arrastar-e-soltar nativo de forma confiável em alguns navegadores.
   const draggable = event.source === "internal";
-  const onDragStart = (e: DragEvent) => {
-    e.dataTransfer.setData("text/plain", event.id);
-    e.dataTransfer.effectAllowed = "move";
-  };
-  const common = {
-    draggable,
-    onClick: () => onSelect(event),
-    onDragStart: draggable ? onDragStart : undefined,
-    role: "button" as const,
-    tabIndex: 0,
-    title: event.title
-  };
 
-  if (large) {
-    return (
-      <div
-        className={`block w-full rounded-md px-2 py-1.5 text-left text-xs font-medium transition ${tone} ${
-          draggable ? "cursor-move" : "cursor-pointer"
-        }`}
-        {...common}
-      >
-        <span className="block text-[10px] opacity-80">{toTimeBR(event.starts_at)}</span>
-        <span className="block break-words leading-snug">{event.title}</span>
-      </div>
-    );
-  }
+  // Para arrastáveis, a seleção (abrir modal) é decidida no "up" sem movimento.
+  const handlers = draggable
+    ? {
+        onPointerDown: (e: ReactPointerEvent) => drag.down(event, e),
+        onPointerMove: drag.move,
+        onPointerUp: drag.up,
+        style: { touchAction: "none" as const }
+      }
+    : { onClick: () => onSelect(event) };
+
+  const className = `block w-full rounded text-left font-medium transition ${tone} ${
+    draggable ? "cursor-move" : "cursor-pointer"
+  } ${large ? "px-2 py-1.5 text-xs" : "truncate px-1.5 py-0.5 text-[11px]"}`;
 
   return (
-    <div
-      className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition ${tone} ${
-        draggable ? "cursor-move" : "cursor-pointer"
-      }`}
-      {...common}
-    >
-      {toTimeBR(event.starts_at)} {event.title}
+    <div className={className} role="button" tabIndex={0} title={event.title} {...handlers}>
+      {large ? (
+        <>
+          <span className="block text-[10px] opacity-80">{toTimeBR(event.starts_at)}</span>
+          <span className="block break-words leading-snug">{event.title}</span>
+        </>
+      ) : (
+        <>
+          {toTimeBR(event.starts_at)} {event.title}
+        </>
+      )}
     </div>
   );
 }
@@ -160,8 +158,20 @@ export function CalendarView({
   const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(initialCursor);
   const [selected, setSelected] = useState<CalendarDisplayEvent | null>(null);
+  const [ghost, setGhost] = useState<{ title: string; x: number; y: number } | null>(null);
+  const [overKey, setOverKey] = useState<string | null>(null);
   const router = useRouter();
   const [, startTransition] = useTransition();
+
+  // Estado mutável do arraste em andamento (não dispara re-render a cada movimento).
+  const dragState = useRef<{
+    event: CalendarDisplayEvent;
+    startX: number;
+    startY: number;
+    moved: boolean;
+    pointerId: number;
+    el: Element;
+  } | null>(null);
 
   // Move um evento (arrastado) para outro dia e recarrega os dados do servidor.
   const handleMove = (eventId: string, dateKey: string) => {
@@ -169,6 +179,50 @@ export function CalendarView({
       await moveCalendarEventAction(eventId, dateKey);
       router.refresh();
     });
+  };
+
+  // Descobre a chave do dia (data-datekey) sob um ponto da tela.
+  const dateKeyAtPoint = (x: number, y: number) =>
+    document.elementFromPoint(x, y)?.closest("[data-datekey]")?.getAttribute("data-datekey") ?? null;
+
+  // API de arraste por pointer events: serve mouse e toque de forma confiável.
+  const drag: DragApi = {
+    down: (event, e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      const el = e.currentTarget as Element;
+      el.setPointerCapture(e.pointerId);
+      dragState.current = { event, startX: e.clientX, startY: e.clientY, moved: false, pointerId: e.pointerId, el };
+    },
+    move: (e) => {
+      const d = dragState.current;
+      if (!d) return;
+      if (!d.moved && Math.hypot(e.clientX - d.startX, e.clientY - d.startY) > 6) {
+        d.moved = true;
+      }
+      if (d.moved) {
+        setGhost({ title: d.event.title, x: e.clientX, y: e.clientY });
+        setOverKey(dateKeyAtPoint(e.clientX, e.clientY));
+      }
+    },
+    up: (e) => {
+      const d = dragState.current;
+      if (!d) return;
+      try {
+        d.el.releasePointerCapture(d.pointerId);
+      } catch {
+        // captura já liberada — ignora.
+      }
+      dragState.current = null;
+      setGhost(null);
+      const dropKey = dateKeyAtPoint(e.clientX, e.clientY) ?? overKey;
+      setOverKey(null);
+      // Sem movimento = clique: abre o modal. Com movimento = solta no dia.
+      if (!d.moved) {
+        setSelected(d.event);
+      } else if (dropKey) {
+        handleMove(d.event.id, dropKey);
+      }
+    }
   };
 
   // Agrupa por dia (chave SP) e ordena por horário dentro do dia.
@@ -271,12 +325,36 @@ export function CalendarView({
       </div>
 
       {view === "month" ? (
-        <MonthGrid cursor={cursor} eventsByDay={eventsByDay} onMove={handleMove} todayKey={todayKey} onSelect={setSelected} />
+        <MonthGrid
+          cursor={cursor}
+          drag={drag}
+          eventsByDay={eventsByDay}
+          highlightKey={overKey}
+          onSelect={setSelected}
+          todayKey={todayKey}
+        />
       ) : view === "week" ? (
-        <WeekGrid cursor={cursor} eventsByDay={eventsByDay} onMove={handleMove} todayKey={todayKey} onSelect={setSelected} />
+        <WeekGrid
+          cursor={cursor}
+          drag={drag}
+          eventsByDay={eventsByDay}
+          highlightKey={overKey}
+          onSelect={setSelected}
+          todayKey={todayKey}
+        />
       ) : (
         <DayList cursor={cursor} eventsByDay={eventsByDay} onSelect={setSelected} />
       )}
+
+      {/* Fantasma que segue o cursor/dedo enquanto arrasta. */}
+      {ghost ? (
+        <div
+          className="pointer-events-none fixed z-50 max-w-48 truncate rounded-md bg-white px-2 py-1 text-xs font-medium text-blu shadow-glow"
+          style={{ left: ghost.x + 12, top: ghost.y + 12 }}
+        >
+          {ghost.title}
+        </div>
+      ) : null}
 
       {selected ? <EventModal event={selected} onClose={() => setSelected(null)} /> : null}
     </section>
@@ -288,33 +366,18 @@ type GridProps = {
   eventsByDay: Map<string, CalendarDisplayEvent[]>;
   todayKey: string;
   onSelect: (e: CalendarDisplayEvent) => void;
-  onMove: (eventId: string, dateKey: string) => void;
+  drag: DragApi;
+  highlightKey: string | null; // dia destacado durante o arraste
 };
 
-// Permite soltar um evento numa célula de dia, movendo-o para aquela data.
-function dropHandlers(
-  dateKey: string,
-  onMove: (id: string, key: string) => void,
-  setOver: (key: string | null) => void
-) {
-  return {
-    onDragOver: (e: DragEvent) => e.preventDefault(),
-    onDragEnter: (e: DragEvent) => {
-      e.preventDefault();
-      setOver(dateKey);
-    },
-    onDragLeave: () => setOver(null),
-    onDrop: (e: DragEvent) => {
-      e.preventDefault();
-      setOver(null);
-      const id = e.dataTransfer.getData("text/plain");
-      if (id) onMove(id, dateKey);
-    }
-  };
+// Classe da borda de uma célula de dia (destaque ao arrastar > hoje > normal).
+function cellBorder(key: string, todayKey: string, highlightKey: string | null) {
+  if (highlightKey === key) return "border-celeste ring-2 ring-celeste/60";
+  if (key === todayKey) return "border-ambered bg-ambered/10";
+  return "border-moss/10";
 }
 
-function MonthGrid({ cursor, eventsByDay, todayKey, onSelect, onMove }: GridProps) {
-  const [overKey, setOverKey] = useState<string | null>(null);
+function MonthGrid({ cursor, eventsByDay, todayKey, onSelect, drag, highlightKey }: GridProps) {
   const { y, m } = partsOf(cursor);
   const firstWeekday = weekdayOf(`${y}-${pad(m)}-01`);
   const daysInMonth = new Date(y, m, 0).getDate();
@@ -336,25 +399,18 @@ function MonthGrid({ cursor, eventsByDay, todayKey, onSelect, onMove }: GridProp
         {cells.map((key, index) => {
           if (!key) return <div className="min-h-20 rounded-md bg-mist/40" key={`empty-${index}`} />;
           const dayEvents = eventsByDay.get(key) ?? [];
-          const isToday = key === todayKey;
           return (
             <div
-              className={`min-h-20 rounded-md border p-1 text-left ${
-                overKey === key
-                  ? "border-celeste ring-2 ring-celeste/60"
-                  : isToday
-                    ? "border-ambered bg-ambered/10"
-                    : "border-moss/10"
-              }`}
+              className={`min-h-20 rounded-md border p-1 text-left ${cellBorder(key, todayKey, highlightKey)}`}
+              data-datekey={key}
               key={key}
-              {...dropHandlers(key, onMove, setOverKey)}
             >
-              <span className={`text-xs font-semibold ${isToday ? "text-ink" : "text-moss"}`}>
+              <span className={`text-xs font-semibold ${key === todayKey ? "text-ink" : "text-moss"}`}>
                 {partsOf(key).d}
               </span>
               <div className="mt-1 space-y-1">
                 {dayEvents.map((event) => (
-                  <EventChip event={event} key={`${event.source}-${event.id}`} onSelect={onSelect} />
+                  <EventChip drag={drag} event={event} key={`${event.source}-${event.id}`} onSelect={onSelect} />
                 ))}
               </div>
             </div>
@@ -365,8 +421,7 @@ function MonthGrid({ cursor, eventsByDay, todayKey, onSelect, onMove }: GridProp
   );
 }
 
-function WeekGrid({ cursor, eventsByDay, todayKey, onSelect, onMove }: GridProps) {
-  const [overKey, setOverKey] = useState<string | null>(null);
+function WeekGrid({ cursor, eventsByDay, todayKey, onSelect, drag, highlightKey }: GridProps) {
   const start = addDays(cursor, -weekdayOf(cursor));
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
 
@@ -374,28 +429,21 @@ function WeekGrid({ cursor, eventsByDay, todayKey, onSelect, onMove }: GridProps
     <div className="grid grid-cols-7 gap-1">
       {days.map((key) => {
         const dayEvents = eventsByDay.get(key) ?? [];
-        const isToday = key === todayKey;
         return (
           <div
-            className={`min-h-64 rounded-md border p-1.5 text-left ${
-              overKey === key
-                ? "border-celeste ring-2 ring-celeste/60"
-                : isToday
-                  ? "border-ambered bg-ambered/10"
-                  : "border-moss/10"
-            }`}
+            className={`min-h-64 rounded-md border p-1.5 text-left ${cellBorder(key, todayKey, highlightKey)}`}
+            data-datekey={key}
             key={key}
-            {...dropHandlers(key, onMove, setOverKey)}
           >
             <p className="text-center text-[11px] font-semibold uppercase text-moss">
               {weekdayLabels[weekdayOf(key)]}
             </p>
-            <p className={`text-center text-sm font-semibold ${isToday ? "text-ink" : "text-moss"}`}>
+            <p className={`text-center text-sm font-semibold ${key === todayKey ? "text-ink" : "text-moss"}`}>
               {partsOf(key).d}
             </p>
             <div className="mt-2 space-y-1.5">
               {dayEvents.map((event) => (
-                <EventChip event={event} key={`${event.source}-${event.id}`} large onSelect={onSelect} />
+                <EventChip drag={drag} event={event} key={`${event.source}-${event.id}`} large onSelect={onSelect} />
               ))}
             </div>
           </div>
