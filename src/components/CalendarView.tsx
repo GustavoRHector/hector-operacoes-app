@@ -1,8 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type DragEvent, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { deleteGoogleEventAction, updateGoogleEventAction } from "@/app/(app)/agenda/actions";
+import { useRouter } from "next/navigation";
+import {
+  deleteGoogleEventAction,
+  moveCalendarEventAction,
+  updateGoogleEventAction
+} from "@/app/(app)/agenda/actions";
 import { toDateKeyBR, toDateTimeLocalBR, toTimeBR } from "@/lib/utils";
 
 // Evento achatado para exibição. Campos extras alimentam o modal de detalhes;
@@ -13,7 +18,7 @@ export type CalendarDisplayEvent = {
   starts_at: string;
   ends_at: string | null;
   source: "internal" | "google";
-  color: "neutral" | "red" | "yellow";
+  color: "neutral" | "green" | "yellow" | "red";
   event_type: string | null;
   responsible_name: string | null;
   description: string | null;
@@ -23,9 +28,10 @@ export type CalendarDisplayEvent = {
 
 // Tom da pílula: eventos do Google sempre em celeste; internos pela cor escolhida.
 function chipTone(event: CalendarDisplayEvent) {
-  if (event.source === "google") return "bg-celeste/25 text-white hover:bg-celeste/40";
-  if (event.color === "red") return "bg-magic-red/35 text-white hover:bg-magic-red/50";
-  if (event.color === "yellow") return "bg-magic-amber/35 text-white hover:bg-magic-amber/50";
+  if (event.source === "google") return "bg-celeste/30 text-white hover:bg-celeste/45";
+  if (event.color === "red") return "bg-magic-red/45 text-white hover:bg-magic-red/60";
+  if (event.color === "yellow") return "bg-magic-amber/45 text-white hover:bg-magic-amber/60";
+  if (event.color === "green") return "bg-magic-green/40 text-white hover:bg-magic-green/55";
   return "bg-white/15 text-white hover:bg-white/25";
 }
 
@@ -94,12 +100,22 @@ function EventChip({
   large?: boolean;
 }) {
   const tone = chipTone(event);
+  // Apenas eventos internos podem ser arrastados para outro dia.
+  const draggable = event.source === "internal";
+  const onDragStart = (e: DragEvent) => {
+    e.dataTransfer.setData("text/plain", event.id);
+    e.dataTransfer.effectAllowed = "move";
+  };
 
   if (large) {
     return (
       <button
-        className={`block w-full rounded-md px-2 py-1.5 text-left text-xs font-medium transition ${tone}`}
+        className={`block w-full rounded-md px-2 py-1.5 text-left text-xs font-medium transition ${tone} ${
+          draggable ? "cursor-move" : ""
+        }`}
+        draggable={draggable}
         onClick={() => onSelect(event)}
+        onDragStart={draggable ? onDragStart : undefined}
         title={event.title}
         type="button"
       >
@@ -111,8 +127,12 @@ function EventChip({
 
   return (
     <button
-      className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition ${tone}`}
+      className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition ${tone} ${
+        draggable ? "cursor-move" : ""
+      }`}
+      draggable={draggable}
       onClick={() => onSelect(event)}
+      onDragStart={draggable ? onDragStart : undefined}
       title={event.title}
       type="button"
     >
@@ -135,6 +155,16 @@ export function CalendarView({
   const [view, setView] = useState<View>("month");
   const [cursor, setCursor] = useState(initialCursor);
   const [selected, setSelected] = useState<CalendarDisplayEvent | null>(null);
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+
+  // Move um evento (arrastado) para outro dia e recarrega os dados do servidor.
+  const handleMove = (eventId: string, dateKey: string) => {
+    startTransition(async () => {
+      await moveCalendarEventAction(eventId, dateKey);
+      router.refresh();
+    });
+  };
 
   // Agrupa por dia (chave SP) e ordena por horário dentro do dia.
   const eventsByDay = useMemo(() => {
@@ -220,19 +250,25 @@ export function CalendarView({
         </div>
       </div>
 
-      <div className="mb-3 flex items-center gap-4 text-xs text-moss">
+      <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-moss">
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded bg-white/25" /> Interno
+          <span className="h-2.5 w-2.5 rounded bg-magic-green/60" /> Leve
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded bg-celeste/50" /> Google
+          <span className="h-2.5 w-2.5 rounded bg-magic-amber/60" /> Médio
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded bg-magic-red/60" /> Alta
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded bg-celeste/60" /> Google
         </span>
       </div>
 
       {view === "month" ? (
-        <MonthGrid cursor={cursor} eventsByDay={eventsByDay} todayKey={todayKey} onSelect={setSelected} />
+        <MonthGrid cursor={cursor} eventsByDay={eventsByDay} onMove={handleMove} todayKey={todayKey} onSelect={setSelected} />
       ) : view === "week" ? (
-        <WeekGrid cursor={cursor} eventsByDay={eventsByDay} todayKey={todayKey} onSelect={setSelected} />
+        <WeekGrid cursor={cursor} eventsByDay={eventsByDay} onMove={handleMove} todayKey={todayKey} onSelect={setSelected} />
       ) : (
         <DayList cursor={cursor} eventsByDay={eventsByDay} onSelect={setSelected} />
       )}
@@ -247,9 +283,22 @@ type GridProps = {
   eventsByDay: Map<string, CalendarDisplayEvent[]>;
   todayKey: string;
   onSelect: (e: CalendarDisplayEvent) => void;
+  onMove: (eventId: string, dateKey: string) => void;
 };
 
-function MonthGrid({ cursor, eventsByDay, todayKey, onSelect }: GridProps) {
+// Permite soltar um evento numa célula de dia, movendo-o para aquela data.
+function dropHandlers(dateKey: string, onMove: (id: string, key: string) => void) {
+  return {
+    onDragOver: (e: DragEvent) => e.preventDefault(),
+    onDrop: (e: DragEvent) => {
+      e.preventDefault();
+      const id = e.dataTransfer.getData("text/plain");
+      if (id) onMove(id, dateKey);
+    }
+  };
+}
+
+function MonthGrid({ cursor, eventsByDay, todayKey, onSelect, onMove }: GridProps) {
   const { y, m } = partsOf(cursor);
   const firstWeekday = weekdayOf(`${y}-${pad(m)}-01`);
   const daysInMonth = new Date(y, m, 0).getDate();
@@ -278,6 +327,7 @@ function MonthGrid({ cursor, eventsByDay, todayKey, onSelect }: GridProps) {
                 isToday ? "border-ambered bg-ambered/10" : "border-moss/10"
               }`}
               key={key}
+              {...dropHandlers(key, onMove)}
             >
               <span className={`text-xs font-semibold ${isToday ? "text-ink" : "text-moss"}`}>
                 {partsOf(key).d}
@@ -295,7 +345,7 @@ function MonthGrid({ cursor, eventsByDay, todayKey, onSelect }: GridProps) {
   );
 }
 
-function WeekGrid({ cursor, eventsByDay, todayKey, onSelect }: GridProps) {
+function WeekGrid({ cursor, eventsByDay, todayKey, onSelect, onMove }: GridProps) {
   const start = addDays(cursor, -weekdayOf(cursor));
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
 
@@ -310,6 +360,7 @@ function WeekGrid({ cursor, eventsByDay, todayKey, onSelect }: GridProps) {
               isToday ? "border-ambered bg-ambered/10" : "border-moss/10"
             }`}
             key={key}
+            {...dropHandlers(key, onMove)}
           >
             <p className="text-center text-[11px] font-semibold uppercase text-moss">
               {weekdayLabels[weekdayOf(key)]}
@@ -358,7 +409,9 @@ function DayList({
               ? "border-magic-red/40 bg-magic-red/15"
               : event.color === "yellow"
                 ? "border-magic-amber/40 bg-magic-amber/15"
-                : "border-white/15 bg-white/10";
+                : event.color === "green"
+                  ? "border-magic-green/40 bg-magic-green/15"
+                  : "border-white/15 bg-white/10";
         return (
           <button
             className={`flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-left transition hover:bg-white/15 ${tone}`}

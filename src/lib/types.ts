@@ -108,7 +108,8 @@ export type ProcessEditData = {
 };
 
 // Cor visual do evento no app (não sincroniza com o Google).
-export type EventColor = "neutral" | "red" | "yellow";
+// green = leve, yellow = médio, red = alta; neutral = sem prioridade definida.
+export type EventColor = "neutral" | "green" | "yellow" | "red";
 
 export type CalendarEvent = {
   id: string;

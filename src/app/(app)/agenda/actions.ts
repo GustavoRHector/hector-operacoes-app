@@ -7,9 +7,12 @@ import { getCalendarEventById } from "@/lib/data";
 import { createGoogleEvent, deleteGoogleEvent, getGoogleAccount, updateGoogleEvent } from "@/lib/google";
 import { canManageOperations } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
+import { toDateKeyBR } from "@/lib/utils";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const allowedEventTypes = ["Compromisso", "Reunião", "Prazo", "Renovação", "Visita"] as const;
-const allowedColors = ["neutral", "red", "yellow"] as const;
+const allowedColors = ["neutral", "green", "yellow", "red"] as const;
 
 // Desconecta a conta Google do usuário, removendo os tokens guardados.
 // A RLS garante que cada usuário só apaga o próprio registro.
@@ -192,6 +195,62 @@ export async function deleteCalendarEventAction(formData: FormData) {
   revalidatePath("/agenda");
   revalidatePath("/dashboard");
   redirect("/agenda?deleted=1");
+}
+
+// Move um compromisso interno para outro dia (arrastar-e-soltar), mantendo a
+// hora. Recebe a nova data como chave "YYYY-MM-DD". Respeita a mesma permissão
+// da edição (gestão, criador ou responsável) e espelha no Google se mapeado.
+export async function moveCalendarEventAction(eventId: string, newDateKey: string) {
+  const profile = await requireProfile();
+
+  if (!UUID_RE.test(eventId) || !/^\d{4}-\d{2}-\d{2}$/.test(newDateKey)) {
+    return;
+  }
+
+  const event = await getCalendarEventById(eventId);
+  if (!event) return;
+
+  const isManager = canManageOperations(profile.role);
+  const canEdit = isManager || event.created_by === profile.id || event.responsible_id === profile.id;
+  if (!canEdit) return;
+
+  // Calcula a diferença de dias entre a data atual (fuso SP) e a nova data.
+  const oldKey = toDateKeyBR(event.starts_at);
+  if (oldKey === newDateKey) return;
+
+  const [oy, om, od] = oldKey.split("-").map(Number);
+  const [ny, nm, nd] = newDateKey.split("-").map(Number);
+  const deltaDays = Math.round((Date.UTC(ny, nm - 1, nd) - Date.UTC(oy, om - 1, od)) / 86_400_000);
+  if (deltaDays === 0) return;
+
+  // Brasil não tem horário de verão: somar dias x 24h preserva a hora local.
+  const shift = deltaDays * 86_400_000;
+  const newStart = new Date(new Date(event.starts_at).getTime() + shift).toISOString();
+  const newEnd = event.ends_at ? new Date(new Date(event.ends_at).getTime() + shift).toISOString() : null;
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("calendar_events")
+    .update({ starts_at: newStart, ends_at: newEnd })
+    .eq("id", eventId);
+  if (error) return;
+
+  // Espelha a nova data no Google, se houver mapeamento e conta conectada.
+  if (event.google_event_id) {
+    const account = await getGoogleAccount(profile.id);
+    if (account) {
+      const endISO = newEnd ?? new Date(new Date(newStart).getTime() + 60 * 60 * 1000).toISOString();
+      await updateGoogleEvent(profile.id, event.google_event_id, {
+        title: event.title,
+        description: event.description,
+        startISO: newStart,
+        endISO
+      });
+    }
+  }
+
+  revalidatePath("/agenda");
+  revalidatePath("/dashboard");
 }
 
 // Edita, direto pelo app, um evento que vive no Google Calendar do usuário.

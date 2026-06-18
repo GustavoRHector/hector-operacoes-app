@@ -101,8 +101,9 @@ export function CalendarEditForm({
               defaultValue={event.color}
             >
               <option value="neutral">Neutro</option>
+              <option value="green">Leve</option>
               <option value="yellow">Médio</option>
-              <option value="red">Importante</option>
+              <option value="red">Alta</option>
             </select>
           </label>
 
