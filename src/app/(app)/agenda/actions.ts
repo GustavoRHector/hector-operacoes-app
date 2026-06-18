@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { getCalendarEventById } from "@/lib/data";
-import { createGoogleEvent, deleteGoogleEvent, getGoogleAccount, updateGoogleEvent } from "@/lib/google";
+import {
+  createGoogleEvent,
+  deleteGoogleEvent,
+  getGoogleAccount,
+  moveGoogleEvent,
+  updateGoogleEvent
+} from "@/lib/google";
 import { canManageOperations } from "@/lib/security";
 import { createClient } from "@/lib/supabase/server";
 import { toDateKeyBR } from "@/lib/utils";
@@ -251,6 +257,42 @@ export async function moveCalendarEventAction(eventId: string, newDateKey: strin
 
   revalidatePath("/agenda");
   revalidatePath("/dashboard");
+}
+
+// Move (arrastando) um evento que vive só no Google para outro dia, mantendo a
+// hora. Recebe os horários atuais (vindos da própria leitura do app) para calcular
+// o deslocamento e aplica direto no Google.
+export async function moveGoogleEventAction(
+  googleEventId: string,
+  newDateKey: string,
+  currentStartISO: string,
+  currentEndISO: string | null
+) {
+  const profile = await requireProfile();
+
+  if (!/^[a-zA-Z0-9_]+$/.test(googleEventId) || !/^\d{4}-\d{2}-\d{2}$/.test(newDateKey)) {
+    return;
+  }
+  const startMs = new Date(currentStartISO).getTime();
+  if (Number.isNaN(startMs)) return;
+
+  const oldKey = toDateKeyBR(currentStartISO);
+  if (oldKey === newDateKey) return;
+
+  const [oy, om, od] = oldKey.split("-").map(Number);
+  const [ny, nm, nd] = newDateKey.split("-").map(Number);
+  const deltaDays = Math.round((Date.UTC(ny, nm - 1, nd) - Date.UTC(oy, om - 1, od)) / 86_400_000);
+  if (deltaDays === 0) return;
+
+  const shift = deltaDays * 86_400_000;
+  const newStart = new Date(startMs + shift).toISOString();
+  const endMs = currentEndISO ? new Date(currentEndISO).getTime() : NaN;
+  const newEnd = Number.isNaN(endMs)
+    ? new Date(startMs + shift + 60 * 60 * 1000).toISOString()
+    : new Date(endMs + shift).toISOString();
+
+  await moveGoogleEvent(profile.id, googleEventId, newStart, newEnd);
+  revalidatePath("/agenda");
 }
 
 // Edita, direto pelo app, um evento que vive no Google Calendar do usuário.

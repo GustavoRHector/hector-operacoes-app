@@ -56,26 +56,55 @@ export default async function AgendaPage({
     ? await listGoogleEvents(profile.id, windowMin, windowMax)
     : { ok: false, events: [] };
   const googleEventsRaw = googleResult.events;
-  const googleIdSet = new Set(googleEventsRaw.map((g) => g.id));
 
-  // Reconciliação Google → app: se um evento criado pelo app (tem google_event_id)
-  // sumiu do Google dentro da janela carregada, foi excluído lá → remove no app.
-  // Só roda quando a leitura do Google deu certo, para não apagar por engano.
+  // Reconciliação Google → app (só quando a leitura do Google deu certo):
+  //  - evento do app que sumiu do Google (dentro da janela) → foi excluído lá → remove no app.
+  //  - evento do app que mudou no Google (título/horário/descrição) → traz a mudança para o app.
+  // Assim a edição feita direto no Google volta para o painel, fechando os dois sentidos.
   let internalEvents = events;
   if (googleResult.ok) {
+    const supabase = await createClient();
     const minT = new Date(windowMin).getTime();
     const maxT = new Date(windowMax).getTime();
-    const deletedInGoogle = events.filter((e) => {
-      if (!e.google_event_id || googleIdSet.has(e.google_event_id)) return false;
-      const t = new Date(e.starts_at).getTime();
-      return t >= minT && t < maxT;
-    });
-    if (deletedInGoogle.length > 0) {
-      const ids = deletedInGoogle.map((e) => e.id);
-      const supabase = await createClient();
-      await supabase.from("calendar_events").delete().in("id", ids);
-      const removed = new Set(ids);
-      internalEvents = events.filter((e) => !removed.has(e.id));
+    const googleById = new Map(googleEventsRaw.map((g) => [g.id, g]));
+    const removedIds = new Set<string>();
+
+    for (const e of events) {
+      if (!e.google_event_id) continue;
+      const g = googleById.get(e.google_event_id);
+
+      if (!g) {
+        const t = new Date(e.starts_at).getTime();
+        if (t >= minT && t < maxT) {
+          await supabase.from("calendar_events").delete().eq("id", e.id);
+          removedIds.add(e.id);
+        }
+        continue;
+      }
+
+      // Compara por instante (formatos de fuso diferem) e por texto.
+      const sameStart = new Date(e.starts_at).getTime() === new Date(g.starts_at).getTime();
+      const sameEnd =
+        (e.ends_at ? new Date(e.ends_at).getTime() : null) ===
+        (g.ends_at ? new Date(g.ends_at).getTime() : null);
+      const sameTitle = e.title === g.title;
+      const sameDesc = (e.description ?? "") === (g.description ?? "");
+
+      if (!sameStart || !sameEnd || !sameTitle || !sameDesc) {
+        await supabase
+          .from("calendar_events")
+          .update({ title: g.title, starts_at: g.starts_at, ends_at: g.ends_at, description: g.description })
+          .eq("id", e.id);
+        // Reflete na hora, sem esperar o próximo carregamento.
+        e.title = g.title;
+        e.starts_at = g.starts_at;
+        e.ends_at = g.ends_at;
+        e.description = g.description;
+      }
+    }
+
+    if (removedIds.size > 0) {
+      internalEvents = events.filter((e) => !removedIds.has(e.id));
     }
   }
 

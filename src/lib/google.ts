@@ -246,6 +246,32 @@ export async function updateGoogleEvent(
   return res.ok;
 }
 
+// Move um evento do Google (PATCH só de início/fim, preservando os demais campos).
+export async function moveGoogleEvent(
+  userId: string,
+  googleEventId: string,
+  startISO: string,
+  endISO: string
+): Promise<boolean> {
+  const token = await getValidAccessToken(userId);
+  if (!token) return false;
+
+  const body = {
+    start: { dateTime: startISO, timeZone: "America/Sao_Paulo" },
+    end: { dateTime: endISO, timeZone: "America/Sao_Paulo" }
+  };
+
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(googleEventId)}`,
+    {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }
+  );
+  return res.ok;
+}
+
 // Exclui um evento do Google Calendar do usuário. 410 = já estava excluído.
 export async function deleteGoogleEvent(userId: string, googleEventId: string): Promise<boolean> {
   const token = await getValidAccessToken(userId);

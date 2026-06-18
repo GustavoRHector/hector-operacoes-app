@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   deleteGoogleEventAction,
   moveCalendarEventAction,
+  moveGoogleEventAction,
   updateGoogleEventAction
 } from "@/app/(app)/agenda/actions";
 import { toDateKeyBR, toDateTimeLocalBR, toTimeBR } from "@/lib/utils";
@@ -98,35 +99,31 @@ type DragApi = {
   up: (e: ReactPointerEvent) => void;
 };
 
-// Pílula de um evento na grade. Eventos internos podem ser arrastados (pointer
-// events); o clique sem arrastar abre o modal. Google só clica (abre o modal).
+// Pílula de um evento na grade. Todos podem ser arrastados (pointer events);
+// o clique sem arrastar abre o modal (decidido no "up" do controlador de arraste).
 function EventChip({
   event,
-  onSelect,
   drag,
   large = false
 }: {
   event: CalendarDisplayEvent;
-  onSelect: (e: CalendarDisplayEvent) => void;
   drag: DragApi;
   large?: boolean;
 }) {
   const tone = chipTone(event);
-  const draggable = event.source === "internal";
 
-  // Para arrastáveis, a seleção (abrir modal) é decidida no "up" sem movimento.
-  const handlers = draggable
-    ? {
-        onPointerDown: (e: ReactPointerEvent) => drag.down(event, e),
-        onPointerMove: drag.move,
-        onPointerUp: drag.up,
-        style: { touchAction: "none" as const }
-      }
-    : { onClick: () => onSelect(event) };
+  // Todos os eventos (internos e do Google) podem ser arrastados. A seleção
+  // (abrir modal) é decidida no "up" quando não houve movimento.
+  const handlers = {
+    onPointerDown: (e: ReactPointerEvent) => drag.down(event, e),
+    onPointerMove: drag.move,
+    onPointerUp: drag.up,
+    style: { touchAction: "none" as const }
+  };
 
-  const className = `block w-full rounded text-left font-medium transition ${tone} ${
-    draggable ? "cursor-move" : "cursor-pointer"
-  } ${large ? "px-2 py-1.5 text-xs" : "truncate px-1.5 py-0.5 text-[11px]"}`;
+  const className = `block w-full cursor-move rounded text-left font-medium transition ${tone} ${
+    large ? "px-2 py-1.5 text-xs" : "truncate px-1.5 py-0.5 text-[11px]"
+  }`;
 
   return (
     <div className={className} role="button" tabIndex={0} title={event.title} {...handlers}>
@@ -173,10 +170,15 @@ export function CalendarView({
     el: Element;
   } | null>(null);
 
-  // Move um evento (arrastado) para outro dia e recarrega os dados do servidor.
-  const handleMove = (eventId: string, dateKey: string) => {
+  // Move um evento (arrastado) para outro dia. Interno usa a action interna
+  // (que espelha no Google); evento só-do-Google é movido direto no Google.
+  const handleMove = (event: CalendarDisplayEvent, dateKey: string) => {
     startTransition(async () => {
-      await moveCalendarEventAction(eventId, dateKey);
+      if (event.source === "google") {
+        await moveGoogleEventAction(event.id, dateKey, event.starts_at, event.ends_at);
+      } else {
+        await moveCalendarEventAction(event.id, dateKey);
+      }
       router.refresh();
     });
   };
@@ -220,7 +222,7 @@ export function CalendarView({
       if (!d.moved) {
         setSelected(d.event);
       } else if (dropKey) {
-        handleMove(d.event.id, dropKey);
+        handleMove(d.event, dropKey);
       }
     }
   };
@@ -330,7 +332,6 @@ export function CalendarView({
           drag={drag}
           eventsByDay={eventsByDay}
           highlightKey={overKey}
-          onSelect={setSelected}
           todayKey={todayKey}
         />
       ) : view === "week" ? (
@@ -339,7 +340,6 @@ export function CalendarView({
           drag={drag}
           eventsByDay={eventsByDay}
           highlightKey={overKey}
-          onSelect={setSelected}
           todayKey={todayKey}
         />
       ) : (
@@ -365,7 +365,6 @@ type GridProps = {
   cursor: string;
   eventsByDay: Map<string, CalendarDisplayEvent[]>;
   todayKey: string;
-  onSelect: (e: CalendarDisplayEvent) => void;
   drag: DragApi;
   highlightKey: string | null; // dia destacado durante o arraste
 };
@@ -377,7 +376,7 @@ function cellBorder(key: string, todayKey: string, highlightKey: string | null) 
   return "border-moss/10";
 }
 
-function MonthGrid({ cursor, eventsByDay, todayKey, onSelect, drag, highlightKey }: GridProps) {
+function MonthGrid({ cursor, eventsByDay, todayKey, drag, highlightKey }: GridProps) {
   const { y, m } = partsOf(cursor);
   const firstWeekday = weekdayOf(`${y}-${pad(m)}-01`);
   const daysInMonth = new Date(y, m, 0).getDate();
@@ -410,7 +409,7 @@ function MonthGrid({ cursor, eventsByDay, todayKey, onSelect, drag, highlightKey
               </span>
               <div className="mt-1 space-y-1">
                 {dayEvents.map((event) => (
-                  <EventChip drag={drag} event={event} key={`${event.source}-${event.id}`} onSelect={onSelect} />
+                  <EventChip drag={drag} event={event} key={`${event.source}-${event.id}`} />
                 ))}
               </div>
             </div>
@@ -421,7 +420,7 @@ function MonthGrid({ cursor, eventsByDay, todayKey, onSelect, drag, highlightKey
   );
 }
 
-function WeekGrid({ cursor, eventsByDay, todayKey, onSelect, drag, highlightKey }: GridProps) {
+function WeekGrid({ cursor, eventsByDay, todayKey, drag, highlightKey }: GridProps) {
   const start = addDays(cursor, -weekdayOf(cursor));
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
 
@@ -443,7 +442,7 @@ function WeekGrid({ cursor, eventsByDay, todayKey, onSelect, drag, highlightKey 
             </p>
             <div className="mt-2 space-y-1.5">
               {dayEvents.map((event) => (
-                <EventChip drag={drag} event={event} key={`${event.source}-${event.id}`} large onSelect={onSelect} />
+                <EventChip drag={drag} event={event} key={`${event.source}-${event.id}`} large />
               ))}
             </div>
           </div>
