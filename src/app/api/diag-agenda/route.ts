@@ -1,34 +1,44 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth";
+import { listCalendarEvents } from "@/lib/data";
+import { getGoogleAccount, listGoogleEvents } from "@/lib/google";
 
 // ROTA TEMPORÁRIA — deletar após diagnóstico.
-// Mostra se a consulta interna de eventos funciona e qual erro retorna.
+// Reproduz o pipeline da agenda: internos + Google + deduplicação.
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
   if (token !== process.env.SETUP_TOKEN) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  const supabase = await createClient();
+  const user = await requireUser();
+  const events = await listCalendarEvents();
+  const account = await getGoogleAccount(user.id);
 
-  // Testa exatamente os campos que a listagem usa.
-  const full = await supabase
-    .from("calendar_events")
-    .select("id, color, google_event_id")
-    .limit(3);
+  const now = new Date();
+  const windowMin = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString();
+  const windowMax = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 3, 1)).toISOString();
+  const googleRaw = account ? await listGoogleEvents(user.id, windowMin, windowMax) : [];
 
-  // Testa só o básico, para comparar.
-  const basic = await supabase.from("calendar_events").select("id, title").limit(3);
+  const internalGoogleIds = new Set(
+    events.map((e) => e.google_event_id).filter((id): id is string => Boolean(id))
+  );
+  const googleDeduped = googleRaw.filter((g) => !internalGoogleIds.has(g.id));
 
   return NextResponse.json({
-    com_color_e_google_id: {
-      erro: full.error?.message ?? null,
-      quantidade: full.data?.length ?? 0,
-      amostra: full.data ?? null
+    internos: {
+      total: events.length,
+      amostra: events.slice(0, 5).map((e) => ({
+        title: e.title,
+        color: e.color,
+        google_event_id: e.google_event_id
+      }))
     },
-    so_basico: {
-      erro: basic.error?.message ?? null,
-      quantidade: basic.data?.length ?? 0
-    }
+    google_bruto: {
+      total: googleRaw.length,
+      ids: googleRaw.slice(0, 8).map((g) => ({ title: g.title, id: g.id }))
+    },
+    google_apos_dedup: googleDeduped.length,
+    ids_internos_mapeados: Array.from(internalGoogleIds)
   });
 }
